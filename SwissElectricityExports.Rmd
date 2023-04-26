@@ -7,7 +7,7 @@ output: html_notebook
 #import data
 library(readxl)
 
-swiss_elec <- read_excel("Electricity export Switzerland-3.xlsx")
+Electricity <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
 
 ```{r}
