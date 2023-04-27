@@ -53,6 +53,7 @@ graph_bigmac_avg
 
 On the blue graph, we see that Norway has the most expensive bigmac in average, and Oman and Kowait the most cheepest ones. 
 For the analysis, we select the few following countries: Norway, Oman, Mexico, Germany and Thailand. 
+
 ```{r}
 #filter countries
 library(ggplot2)
@@ -80,4 +81,29 @@ data_country <- bigmac %>%
 print(data_country)
 ```
 We see that Oman has only 9 data and Germany only 23. It is a few compared to Norway that has 33 data and Mexico 37. 
+
+```{r}
+bigmac$date <- as.Date(bigmac$date)
+
+# Create a scatterplot of the local price against the date for each country
+ggplot(bigmac, aes(x=date, y=local_price, color=country)) + 
+  geom_point() + 
+  scale_x_date(date_labels = "%Y", date_breaks = "2 years") +
+  labs(x="Year", y="Local Price", title="Local Price of Big Mac over Time by Country") +
+  theme_bw()
+```
+
+```{r}
+library(ggplot2)
+
+# Create a violin plot of the local price by country
+ggplot(bigmac, aes(x=country, y=local_price)) +
+  geom_violin(fill="blue", color="black", alpha=0.5) +
+  labs(x="Country", y="Local Price", title="Distribution of Local Price of Big Mac by Country") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+```
+
+
 
