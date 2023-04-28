@@ -18,6 +18,10 @@ names(bigmac)[names(bigmac) == "name"] <- "country"
 
 print(BigMac)
 
+#convert date to date format 
+
+bigmac$date <-as.Date(bigmac$date, format = "%Y-%m-%d")
+
 #average price per country
 library(dplyr)
 
@@ -105,5 +109,43 @@ ggplot(bigmac, aes(x=country, y=local_price)) +
 
 ```
 
+Ici j'ai rajouté les régions géographiques pour chaques pays pour voir si les groupes sont cohérants
+```{r}
+
+#Adding Region to the dataset
+country_region <- c("South America", "Oceania", "South America", "Europe", "North America", "South America", "Asia", "Europe", "Europe", "Europe", "Asia", "Europe", "Asia", "Asia", "Asia", "Asia", "North America", "Oceania", "Europe", "Europe", "Asia", "Africa", "Asia", "Europe", "Europe", "Asia", "Asia", "North America", "Asia", "Europe", "South America", "Europe", "South America", "Africa", "South America", "Central America", "Asia", "Asia", "Asia", "Europe", "South America", "Asia", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Asia", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Asia", "Asia", "Asia", "Asia", "Europe", "Central America", "Central America", "Asia", "Asia", "Europe", "Asia", "Europe", "Asia", "Central America", "Asia", "Asia", "Europe", "Europe", "Europe", "Asia")
+names(country_region) <- c("Argentina", "Australia", "Brazil", "Britain", "Canada", "Chile", "China", "Czech Republic", "Denmark", "Euro area", "Hong Kong", "Hungary", "Indonesia", "Israel", "Japan", "Malaysia", "Mexico", "New Zealand", "Poland", "Russia", "Singapore", "South Africa", "South Korea", "Sweden", "Switzerland", "Taiwan", "Thailand", "United States", "Philippines", "Norway", "Peru", "Turkey", "Venezuela", "Egypt", "Colombia", "Costa Rica", "Pakistan", "Saudi Arabia", "Sri Lanka", "Ukraine", "Uruguay", "UAE", "Austria", "Belgium", "Estonia", "Finland", "France", "Germany", "Greece", "India", "Ireland", "Italy", "Netherlands", "Portugal", "Spain", "Lithuania", "Vietnam", "Azerbaijan", "Bahrain", "Croatia", "Guatemala", "Honduras", "Jordan", "Kuwait", "Latvia", "Lebanon", "Moldova", "Nicaragua", "Oman", "Qatar", "Romania", "Slovakia", "Slovenia", "United Arab Emirates")
+
+
+#New dataset of bigmax with regions
+bigmac_region <- bigmac %>% mutate(Region = country_region[country])
+
+#Boxplot analysis
+ggplot(bigmac_region, aes(x = Region, y = dollar_price)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Big Mac Index Distribution by Region", x = "Region", y = "Big Mac Index")
+
+bigmac_region_date <- bigmac_region %>% mutate(Date = as.Date(date, format = "%Y-%m-%d"))
+
+
+#Regional Big Mac Index trends
+
+ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Big Mac Index Time Series by Region", x = "Date", y = "Big Mac Index") +
+  theme(legend.title = element_blank()) +
+  facet_wrap(~ Region, scales = "free_y", nrow = 2)
+
+ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Big Mac Index Time Series by Region", x = "Date", y = "Big Mac Index") +
+  theme(legend.title = element_blank())
+
+
+
+```
 
 
