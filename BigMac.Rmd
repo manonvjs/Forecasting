@@ -148,4 +148,16 @@ ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
 
 ```
 
+```{r}
+bigmac_region_avg <- bigmac_region %>%
+  group_by(Region, year = format(date, "%Y")) %>%
+  summarize(avg_dollar_price = mean(dollar_price), .groups = "drop")
+
+ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
+  geom_point(alpha = 0.5) +
+  geom_line(data = bigmac_region_avg, aes(x = as.Date(paste(year, "-01-01", sep = ""), format = "%Y-%m-%d"), y = avg_dollar_price), size = 1.5) +
+  theme_minimal() +
+  labs(title = "Big Mac Index Time Series by Region", x = "Date", y = "Big Mac Index") +
+  theme(legend.title = element_blank())
+```
 
