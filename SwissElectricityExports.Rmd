@@ -2,23 +2,30 @@
 title: "Swiss electricty exports"
 output: html_notebook
 ---
-
+First of all let us import the data : 
 ```{r}
 #import data
 library(readxl)
-
-Electricity <- read_excel("Electricity export Switzerland-3.xlsx")
+Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
-
+## 1 Introduction 
+Here, we are going to do some basic modification of the raw data in order to be a bit more readable
 ```{r}
 # Rename the columns
-colnames(Electricity) <- c("Date", "Germany", "France", "Austria", "Liechtenstein", "Italy", "Total.Export")
+colnames(Electricityraw) <- c("Date", "Germany", "France", "Austria", "Liechtenstein", "Italy", "Total.Export")
 # Remove the first 4 rows
-Electricity <- Electricity[-c(1:4), ]
+Electricity <- Electricityraw[-c(1:4), ]
 # Change Oktober for October
 Electricity$Date <- gsub("Oktober", "October", Electricity$Date)
 # Convert the date column to a date object
-Electricity$Date <- as.Date(paste("01", Electricity$Date), format = "%d %B %Y")
+Electricity$Date <- as.Date(paste0("01 ", Electricity$Date), format = "%d %B %Y")
+```
+
+
+## 2.0 Vizualisation 
+
+### 2.1 Time series 
+```{r}
 # Create a time series object for the Total.Export data
 ts_data <- ts(Electricity$Total.Export, start = c(2000, 1), frequency = 12)
 # Create a time series object for the Germany data
@@ -44,8 +51,32 @@ plot(ts_austria, xlab = "Year", ylab = "Electricity export (GWh)", main = "Elect
 # Plot the Liechtenstein time series
 plot(ts_liechtenstein, xlab = "Year", ylab = "Electricity export (GWh)", main = "Electricity Export - Liechtenstein")
 ```
+At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italie and Lichtnestein are stationary. There is a huge drop in 2009 for the electricity export in Italie. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
 
+### 2.1 STL Decomposition 
 ```{r}
+# Define the countries vector
+countries <- c("Germany", "France", "Austria", "Liechtenstein", "Italy", "Total.Export")
+
+# Function to create and plot seasonal decomposition for a given country
+plot_stl_decomposition <- function(data, country) {
+  # Create a time series object
+  country_ts <- ts(data[[country]], start = c(2000, 1), frequency = 12)
+  
+  # Perform STL decomposition
+  country_stl <- stl(country_ts, s.window = "periodic")
+  
+  # Plot the seasonal decomposition
+  plot(country_stl, main = paste("STL Decomposition for", country))
+}
+
+# Use the function to create and display STL decomposition plots for each country
+for (country in countries) {
+  plot_stl_decomposition(Electricity, country)
+}
 
 ```
 
+## 3.0 Cleaning and wrankling
+
+## 4.0 Modeling 
