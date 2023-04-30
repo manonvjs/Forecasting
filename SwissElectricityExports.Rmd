@@ -6,6 +6,7 @@ First of all let us import the data :
 ```{r}
 #import data
 library(readxl)
+library(feasts)
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
 ## 1 Data and Wrangling 
@@ -44,7 +45,7 @@ print(missing_values_per_column)
 ```
 So apparently, there are are no missing values in our data. 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Function to identify and treat outliers using the IQR method
 treat_outliers_iqr <- function(data, k = 1.5) {
   Q1 <- quantile(data, 0.25)
@@ -100,6 +101,8 @@ plot(ts_liechtenstein, xlab = "Year", ylab = "Electricity export (GWh)", main = 
 ```
 At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italie and Lichtnestein are stationary. There is a huge drop in 2009 for the electricity export in Italie. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
 
+
+
 ### 2.1 STL Decomposition 
 ```{r}
 # Define the countries vector
@@ -121,6 +124,74 @@ plot_stl_decomposition <- function(data, country) {
 for (country in countries) {
   plot_stl_decomposition(Electricity, country)
 }
+
+```
+```{r}
+# Function to create and display the seasonal subseries plot for a given country
+plot_seasonal_subseries <- function(data, country) {
+  # Create a time series object
+  country_ts <- ts(data[[country]], start = c(2000, 1), frequency = 12)
+  
+  # Create a seasonal subseries plot
+  seasonal_subseries_plot <- ggseasonplot(country_ts, year.labels = TRUE, year.labels.left = TRUE,
+                                          main = paste("Seasonal Subseries Plot for", country),
+                                          xlab = "Month", ylab = "Electricity Export (GWh)")
+
+  # Display the plot
+  print(seasonal_subseries_plot)
+}
+
+# Use the function to create and display seasonal subseries plots for each country
+for (country in countries) {
+  plot_seasonal_subseries(Electricity, country)
+}
+```
+
+```{r}
+# Load necessary libraries
+library(tsibble)
+library(feasts)
+
+# Convert the time series objects to tsibble objects
+ts_data_tsibble <- ts_data %>% as_tsibble(index = index(ts_data))
+ts_germany_tsibble <- ts_germany %>% as_tsibble(index = index(ts_germany))
+ts_france_tsibble <- ts_france %>% as_tsibble(index = index(ts_france))
+ts_italy_tsibble <- ts_italy %>% as_tsibble(index = index(ts_italy))
+ts_austria_tsibble <- ts_austria %>% as_tsibble(index = index(ts_austria))
+ts_liechtenstein_tsibble <- ts_liechtenstein %>% as_tsibble(index = index(ts_liechtenstein))
+
+# Create seasonal subseries plots for each country using tsibble objects
+germany_plot <- gg_subseries(ts_germany_tsibble) +
+  ggtitle("Seasonal Subseries Plot for Germany") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
+
+france_plot <- gg_subseries(ts_france_tsibble) +
+  ggtitle("Seasonal Subseries Plot for France") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
+
+austria_plot <- gg_subseries(ts_austria_tsibble) +
+  ggtitle("Seasonal Subseries Plot for Austria") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
+
+liechtenstein_plot <- gg_subseries(ts_liechtenstein_tsibble) +
+  ggtitle("Seasonal Subseries Plot for Liechtenstein") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
+
+italy_plot <- gg_subseries(ts_italy_tsibble) +
+  ggtitle("Seasonal Subseries Plot for Italy") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
+
+total_export_plot <- gg_subseries(ts_data_tsibble) +
+  ggtitle("Seasonal Subseries Plot for Total.Export") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
+
+# Display the plots
+print(germany_plot)
+print(france_plot)
+print(austria_plot)
+print(liechtenstein_plot)
+print(italy_plot)
+print(total_export_plot)
 
 ```
 
