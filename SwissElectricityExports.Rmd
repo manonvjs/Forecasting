@@ -126,6 +126,10 @@ for (country in countries) {
 }
 
 ```
+Italie : Clear seasonality with raises in Winter and drops in Summer. As for the trend, from 2000 to 2008, we observe a small incrase followed by huge drop until 2010. Since 2010, the trend is constant. 
+
+Lichtenstein : Clear sesonality with drops every beggning of the years while raising for the Summer. The trend shows constant value until 2017 where there is a huge raise until 2020. This raise is followed by a drop until 2021 and then a small increase.
+
 ```{r}
 # Function to create and display the seasonal subseries plot for a given country
 plot_seasonal_subseries <- function(data, country) {
@@ -194,7 +198,30 @@ print(italy_plot)
 print(total_export_plot)
 
 ```
+```{r}
+# Load necessary library
+library(ggplot2)
 
+# Function to create ACF plot for a given time series
+plot_acf <- function(ts_data, country) {
+  acf_data <- acf(ts_data, plot = FALSE)
+  acf_df <- data.frame(Lag = 1:length(acf_data$acf), ACF = acf_data$acf)
+  ggplot(acf_df, aes(x = Lag, y = ACF)) + geom_bar(stat = "identity") +
+    ggtitle(paste("ACF plot for", country)) +
+    xlab("Lag") + ylab("Autocorrelation") +
+    theme_minimal()
+}
+
+# Create and display ACF plots for each country
+plot_acf(ts_data, "Total.Export")
+plot_acf(ts_germany, "Germany")
+plot_acf(ts_france, "France")
+plot_acf(ts_italy, "Italy")
+plot_acf(ts_austria, "Austria")
+plot_acf(ts_liechtenstein, "Liechtenstein")
+
+
+```
 ## 3.0 Cleaning and wrankling
 
 ## 4.0 Modeling 
