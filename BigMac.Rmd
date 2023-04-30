@@ -54,6 +54,18 @@ graph_bigmac_avg <- ggplot(bigmac_avg, aes(x=country, y=avg_price)) +
 
 graph_bigmac_avg
 ```
+```{r}
+# Average Dollar price bar plot
+bigmac %>%
+  group_by(country) %>%
+  summarize(mean_dollar_price = mean(dollar_price)) %>%
+  ggplot(aes(x = reorder(country, mean_dollar_price), y = mean_dollar_price, fill = country)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Average BigMac Dollar Price by Country", x = "Country", y = "Average Dollar Price")
+
+```
 
 On the blue graph, we see that Norway has the most expensive bigmac in average, and Oman and Kowait the most cheepest ones. 
 For the analysis, we select the few following countries: Norway, Oman, Mexico, Germany and Thailand. 
@@ -87,25 +99,30 @@ print(data_country)
 We see that Oman has only 9 data and Germany only 23. It is a few compared to Norway that has 33 data and Mexico 37. 
 
 ```{r}
-bigmac$date <- as.Date(bigmac$date)
+# Boxplot to see the prices scale per country
+ggplot(data = bigmac, aes(x = country, y = dollar_price, fill = country)) +
+  geom_boxplot() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "BigMac Dollar Price Distribution by Country", x = "Country", y = "Dollar Price")
 
-# Create a scatterplot of the local price against the date for each country
-ggplot(bigmac, aes(x=date, y=local_price, color=country)) + 
-  geom_point() + 
-  scale_x_date(date_labels = "%Y", date_breaks = "2 years") +
-  labs(x="Year", y="Local Price", title="Local Price of Big Mac over Time by Country") +
-  theme_bw()
 ```
 
 ```{r}
-library(ggplot2)
+library(tidyr)
+library(viridis)
 
-# Create a violin plot of the local price by country
-ggplot(bigmac, aes(x=country, y=local_price)) +
-  geom_violin(fill="blue", color="black", alpha=0.5) +
-  labs(x="Country", y="Local Price", title="Distribution of Local Price of Big Mac by Country") +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+# Heatmap to see the evolution of dollars price per country
+bigmac %>%
+  group_by(country, date) %>%
+  summarize(mean_dollar_price = mean(dollar_price)) %>%
+  spread(date, mean_dollar_price) %>%
+  gather(date, mean_dollar_price, -country) %>%
+  ggplot(aes(x = date, y = country, fill = mean_dollar_price)) +
+  geom_tile() +
+  scale_fill_viridis(name = "Dollar Price") +
+  theme_minimal() +
+  labs(title = "BigMac Dollar Price Heatmap", x = "Date", y = "Country")
 
 ```
 
@@ -160,4 +177,3 @@ ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
   labs(title = "Big Mac Index Time Series by Region", x = "Date", y = "Big Mac Index") +
   theme(legend.title = element_blank())
 ```
-
