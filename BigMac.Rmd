@@ -54,6 +54,8 @@ graph_bigmac_avg <- ggplot(bigmac_avg, aes(x=country, y=avg_price)) +
 
 graph_bigmac_avg
 ```
+On the blue graph, we see that Norway has the most expensive bigmac in average, and Oman and Kowait the most cheepest ones. 
+
 ```{r}
 # Average Dollar price bar plot
 bigmac %>%
@@ -66,8 +68,8 @@ bigmac %>%
   labs(title = "Average BigMac Dollar Price by Country", x = "Country", y = "Average Dollar Price")
 
 ```
+On the previous graph, we can see the cheapest to the most expensive bigmac sandwich in dollars. 
 
-On the blue graph, we see that Norway has the most expensive bigmac in average, and Oman and Kowait the most cheepest ones. 
 For the analysis, we select the few following countries: Norway, Oman, Mexico, Germany and Thailand. 
 
 ```{r}
@@ -107,6 +109,7 @@ ggplot(data = bigmac, aes(x = country, y = dollar_price, fill = country)) +
   labs(title = "BigMac Dollar Price Distribution by Country", x = "Country", y = "Dollar Price")
 
 ```
+On this graph, we can see the scale of the different prices of a Bigmac sandwich per country. We can see that in Venezuela, in Brazil, in Turkey and in Australia, the prices fluctuate a lot. At the opposite, some countries as Taiyan, Switzerland and Honduras have almost the same price for years. We can probably explain this variation with the economical and political situation of the given country. 
 
 ```{r}
 library(tidyr)
@@ -125,6 +128,7 @@ bigmac %>%
   labs(title = "BigMac Dollar Price Heatmap", x = "Date", y = "Country")
 
 ```
+This heatmap displays the the level of price per country. The lighter color shows the highest prices, and at the opposite, the darker colors represent the lowest prices. The prices change through years. Indeed, we can see that in Brazil, the prices were quite cheap until 2007. Then they started to increase until 2013. And from 2013, the prices decrease again. For a lot of countries we can see that in 2010-2013, the prices increased. 
 
 Ici j'ai rajouté les régions géographiques pour chaques pays pour voir si les groupes sont cohérants
 ```{r}
@@ -177,3 +181,5 @@ ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
   labs(title = "Big Mac Index Time Series by Region", x = "Date", y = "Big Mac Index") +
   theme(legend.title = element_blank())
 ```
+
+From this graph, we see different prices behavior depending of the regions. First, we clearly identify that South America has a lot of prices fluctuation compared to other regions; especially a big decrease between 2013-2015. The other regions are more calm in terms of fluctuation. We especially observe a long and regular increase of prices in Oceania and North America. 
