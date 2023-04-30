@@ -8,7 +8,7 @@ First of all let us import the data :
 library(readxl)
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
-## 1 Introduction 
+## 1 Data and Wrangling 
 Here, we are going to do some basic modification of the raw data in order to be a bit more readable
 ```{r}
 # Rename the columns
@@ -21,6 +21,53 @@ Electricity$Date <- gsub("Oktober", "October", Electricity$Date)
 Electricity$Date <- as.Date(paste0("01 ", Electricity$Date), format = "%d %B %Y")
 ```
 
+Our column are in a character form, we want to transfrom them in a numeric format since they represent continuous values. 
+```{r}
+# Convert the electricity export columns to numeric
+Electricity$Germany <- as.numeric(Electricity$Germany)
+Electricity$France <- as.numeric(Electricity$France)
+Electricity$Austria <- as.numeric(Electricity$Austria)
+Electricity$Liechtenstein <- as.numeric(Electricity$Liechtenstein)
+Electricity$Italy <- as.numeric(Electricity$Italy)
+Electricity$Total.Export <- as.numeric(Electricity$Total.Export)
+```
+
+
+Lets check if there are some missing values in our dataset 
+```{r}
+# Check if there are any missing values in the dataset
+missing_values <- is.na(Electricity)
+
+# Check if any columns contain missing values
+missing_values_per_column <- colSums(missing_values)
+print(missing_values_per_column)
+```
+So apparently, there are are no missing values in our data. 
+
+```{r}
+# Function to identify and treat outliers using the IQR method
+treat_outliers_iqr <- function(data, k = 1.5) {
+  Q1 <- quantile(data, 0.25)
+  Q3 <- quantile(data, 0.75)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - k * IQR
+  upper_bound <- Q3 + k * IQR
+
+  # Replace outliers with NA
+  data[data < lower_bound | data > upper_bound] <- NA
+  return(data)
+}
+
+# Apply the function to each country's time series
+Electricity$Germany <- treat_outliers_iqr(Electricity$Germany)
+Electricity$France <- treat_outliers_iqr(Electricity$France)
+Electricity$Austria <- treat_outliers_iqr(Electricity$Austria)
+Electricity$Liechtenstein <- treat_outliers_iqr(Electricity$Liechtenstein)
+Electricity$Italy <- treat_outliers_iqr(Electricity$Italy)
+Electricity$Total.Export <- treat_outliers_iqr(Electricity$Total.Export)
+
+
+```
 
 ## 2.0 Vizualisation 
 
