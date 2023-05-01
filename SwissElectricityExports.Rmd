@@ -1,12 +1,18 @@
 ---
 title: "Swiss electricty exports"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 First of all let us import the data : 
 ```{r}
 #import data
 library(readxl)
 library(feasts)
+library(forecast)
+library(tsibble)
+library(feasts)
+library(ggplot2)
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
 ## 1 Data and Wrangling 
@@ -152,10 +158,6 @@ for (country in countries) {
 ```
 
 ```{r}
-# Load necessary libraries
-library(tsibble)
-library(feasts)
-
 # Convert the time series objects to tsibble objects
 ts_data_tsibble <- ts_data %>% as_tsibble(index = index(ts_data))
 ts_germany_tsibble <- ts_germany %>% as_tsibble(index = index(ts_germany))
@@ -166,28 +168,23 @@ ts_liechtenstein_tsibble <- ts_liechtenstein %>% as_tsibble(index = index(ts_lie
 
 # Create seasonal subseries plots for each country using tsibble objects
 germany_plot <- gg_subseries(ts_germany_tsibble) +
-  ggtitle("Seasonal Subseries Plot for Germany") +
-  xlab("Month") + ylab("Electricity Export (GWh)")
+  labs(title = "Seasonal Subseries Plot for Germany", x = "Month", y = "Electricity Export (GWh)")
 
 france_plot <- gg_subseries(ts_france_tsibble) +
-  ggtitle("Seasonal Subseries Plot for France") +
-  xlab("Month") + ylab("Electricity Export (GWh)")
+  labs(title = "Seasonal Subseries Plot for France", x = "Month", y = "Electricity Export (GWh)")
 
 austria_plot <- gg_subseries(ts_austria_tsibble) +
-  ggtitle("Seasonal Subseries Plot for Austria") +
-  xlab("Month") + ylab("Electricity Export (GWh)")
+  labs(title = "Seasonal Subseries Plot for Austria", x = "Month", y = "Electricity Export (GWh)")
 
 liechtenstein_plot <- gg_subseries(ts_liechtenstein_tsibble) +
-  ggtitle("Seasonal Subseries Plot for Liechtenstein") +
-  xlab("Month") + ylab("Electricity Export (GWh)")
+  labs(title = "Seasonal Subseries Plot for Liechtenstein", x = "Month", y = "Electricity Export (GWh)")
 
 italy_plot <- gg_subseries(ts_italy_tsibble) +
-  ggtitle("Seasonal Subseries Plot for Italy") +
-  xlab("Month") + ylab("Electricity Export (GWh)")
+  labs(title = "Seasonal Subseries Plot for Italy", x = "Month", y = "Electricity Export (GWh)")
 
 total_export_plot <- gg_subseries(ts_data_tsibble) +
-  ggtitle("Seasonal Subseries Plot for Total.Export") +
-  xlab("Month") + ylab("Electricity Export (GWh)")
+  labs(title = "Seasonal Subseries Plot for Total.Export", x = "Month", y = "Electricity Export (GWh)")
+
 
 # Display the plots
 print(germany_plot)
@@ -196,21 +193,18 @@ print(austria_plot)
 print(liechtenstein_plot)
 print(italy_plot)
 print(total_export_plot)
-
 ```
-```{r}
-# Load necessary library
-library(ggplot2)
 
+```{r}
 # Function to create ACF plot for a given time series
 plot_acf <- function(ts_data, country) {
   acf_data <- acf(ts_data, plot = FALSE)
   acf_df <- data.frame(Lag = 1:length(acf_data$acf), ACF = acf_data$acf)
   ggplot(acf_df, aes(x = Lag, y = ACF)) + geom_bar(stat = "identity") +
-    ggtitle(paste("ACF plot for", country)) +
-    xlab("Lag") + ylab("Autocorrelation") +
+    labs(title = paste("ACF plot for", country), x = "Lag", y = "Autocorrelation") +
     theme_minimal()
 }
+
 
 # Create and display ACF plots for each country
 plot_acf(ts_data, "Total.Export")
@@ -219,8 +213,6 @@ plot_acf(ts_france, "France")
 plot_acf(ts_italy, "Italy")
 plot_acf(ts_austria, "Austria")
 plot_acf(ts_liechtenstein, "Liechtenstein")
-
-
 ```
 ## 3.0 Cleaning and wrankling
 
