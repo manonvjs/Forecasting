@@ -16,7 +16,7 @@ bigmac <- read.csv("BigmacPrice.csv", header = TRUE)
 #rename columns
 names(bigmac)[names(bigmac) == "name"] <- "country"
 
-print(BigMac)
+print(bigmac)
 
 #convert date to date format 
 
