@@ -183,3 +183,72 @@ ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
 ```
 
 From this graph, we see different prices behavior depending of the regions. First, we clearly identify that South America has a lot of prices fluctuation compared to other regions; especially a big decrease between 2013-2015. The other regions are more calm in terms of fluctuation. We especially observe a long and regular increase of prices in Oceania and North America. 
+
+
+```{r}
+#import data inflation to do the correlation between the two datasets 
+library(readxl)
+library(tidyverse)
+library(janitor)
+inflation_data <- read_excel("imf-dm-export-20230419.xls")
+```
+
+```{r}
+inflation_data_clean <- inflation_data %>%
+  # Remove first row (full of NA)
+  slice(-1) %>%
+  # Rename first column to "Country"
+  rename(Country = `Inflation rate, average consumer prices (Annual percent change)`) %>%
+  # Remove "no data" values and convert to NA
+  mutate_all(funs(na_if(., "no data"))) %>%
+  # Convert all values to numeric, except "Country"
+  mutate_at(vars(-Country), as.numeric) %>%
+  # Round all numeric values to 2 decimal, except "Country"
+  mutate_at(vars(-Country), round, 2) %>%
+  # Wide format to long format
+  gather(key = "Year", value = "Inflation_Rate", -Country) %>%
+  # Convert "Year" column to integer data type
+  mutate(Year = as.integer(Year))
+```
+
+```{r}
+#. Remove NA 
+inf <- na.omit(inflation_data_clean)
+
+# Only keep years from 2000 to 2022
+inf_filtered <- inf %>% filter(Year >= 2000 & Year <= 2022)
+
+Bigmac :
+# to only have the years 
+bigmac$Year <- format(as.Date(bigmac$date), "%Y")
+
+#Remove unnecessary collumns 
+bigmacc <- bigmac[, c(-1, -2, -4, -5)]
+
+#Rename column
+bigmacc <- bigmacc %>%
+    rename(Country = country)
+
+#column year in integer
+bigmacc$Year <- as.integer(bigmacc$Year)
+
+#
+bigmacc <- bigmacc %>%
+ group_by(country, Year) %>%
+     summarise(avg_dollar_price = mean(dollar_price, na.rm = TRUE))
+
+
+#Merge the data per year and country
+merged_data <- inner_join(inf_filtered, bigmacc, by = c("Country", "Year"))
+
+# Compute correlations by country
+by_country <- merged_data %>% 
+    group_by(Country)
+
+corr_by_country <- merged_data %>%
+     group_by(Country) %>%
+     summarise(cor = cor(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs"),
+               p_value = cor.test(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs")$p.value) %>%
+     filter(p_value < 0.05)
+```
+
