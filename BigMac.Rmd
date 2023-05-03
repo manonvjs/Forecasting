@@ -1,9 +1,15 @@
 ---
 title: "Big Mac"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 This dataset has been uploaded on Kaggle website. 
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
 
 ```{r}
 #dollars_ex is the conversation rate with the local currency. 
@@ -16,7 +22,7 @@ bigmac <- read.csv("BigmacPrice.csv", header = TRUE)
 #rename columns
 names(bigmac)[names(bigmac) == "name"] <- "country"
 
-print(BigMac)
+print(bigmac)
 
 #convert date to date format 
 
@@ -218,7 +224,6 @@ inf <- na.omit(inflation_data_clean)
 # Only keep years from 2000 to 2022
 inf_filtered <- inf %>% filter(Year >= 2000 & Year <= 2022)
 
-Bigmac :
 # to only have the years 
 bigmac$Year <- format(as.Date(bigmac$date), "%Y")
 
@@ -234,7 +239,7 @@ bigmacc$Year <- as.integer(bigmacc$Year)
 
 #
 bigmacc <- bigmacc %>%
- group_by(country, Year) %>%
+ group_by(Country, Year) %>%
      summarise(avg_dollar_price = mean(dollar_price, na.rm = TRUE))
 
 
@@ -250,5 +255,9 @@ corr_by_country <- merged_data %>%
      summarise(cor = cor(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs"),
                p_value = cor.test(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs")$p.value) %>%
      filter(p_value < 0.05)
+```
+
+```{r}
+print(corr_by_country)
 ```
 
