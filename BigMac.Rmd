@@ -224,9 +224,6 @@ inf <- na.omit(inflation_data_clean)
 #Replace Taiwan Province of China to Taiwan 
 inf$Country <- gsub("Taiwan Province of China", "Taiwan", inf$Country)
 
-# Only keep years from 2000 to 2022
-inf_filtered <- inf %>% filter(Year >= 2000 & Year <= 2022)
-
 # to only have the years 
 bigmac$Year <- format(as.Date(bigmac$date), "%Y")
 
@@ -246,8 +243,11 @@ bigmacc <- bigmacc %>%
      summarise(avg_dollar_price = mean(dollar_price, na.rm = TRUE))
 
 
-#Merge the data per year and country
-merged_data <- inner_join(inf_filtered, bigmacc, by = c("Country", "Year"))
+#Merge the data per year and for the 4 countries
+countries <- c("Taiwan", "Switzerland", "Brazil", "Venezuela")
+merged_data <- inner_join(inf_filtered %>% filter(Country %in% countries),
+                          bigmacc %>% filter(Country %in% countries),
+                          by = c("Country", "Year"))
 
 # Compute correlations by country
 by_country <- merged_data %>% 
