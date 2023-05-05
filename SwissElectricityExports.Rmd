@@ -18,6 +18,7 @@ library(forecast)
 library(tsibble)
 library(feasts)
 library(ggplot2)
+library(zoo)
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
 ## 1 Data and Wrangling 
@@ -223,3 +224,134 @@ plot_acf(ts_liechtenstein, "Liechtenstein")
 ## 3.0 Cleaning and wrankling
 
 ## 4.0 Modeling 
+
+### ETS model
+
+```{r}
+# Impute missing values using linear interpolation
+Electricity$Germany <- na.approx(Electricity$Germany)
+Electricity$France <- na.approx(Electricity$France)
+Electricity$Austria <- na.approx(Electricity$Austria)
+Electricity$Liechtenstein <- na.approx(Electricity$Liechtenstein)
+Electricity$Italy <- na.approx(Electricity$Italy)
+Electricity$Total.Export <- na.approx(Electricity$Total.Export)
+
+# Create time series objects
+ts_germany <- ts(Electricity$Germany, frequency = 12, start = c(2000, 1))
+ts_france <- ts(Electricity$France, frequency = 12, start = c(2000, 1))
+ts_austria <- ts(Electricity$Austria, frequency = 12, start = c(2000, 1))
+ts_liechtenstein <- ts(Electricity$Liechtenstein, frequency = 12, start = c(2000, 1))
+ts_italy <- ts(Electricity$Italy, frequency = 12, start = c(2000, 1))
+ts_total_export <- ts(Electricity$Total.Export, frequency = 12, start = c(2000, 1))
+
+# Apply ETS model
+ets_germany <- ets(ts_germany)
+ets_france <- ets(ts_france)
+ets_austria <- ets(ts_austria)
+ets_liechtenstein <- ets(ts_liechtenstein)
+ets_italy <- ets(ts_italy)
+ets_total_export <- ets(ts_total_export)
+```
+
+```{r}
+# Forecast
+n_forecast <- 12  # Number of periods to forecast
+forecast_germany <- forecast(ets_germany, h = n_forecast)
+forecast_france <- forecast(ets_france, h = n_forecast)
+forecast_austria <- forecast(ets_austria, h = n_forecast)
+forecast_liechtenstein <- forecast(ets_liechtenstein, h = n_forecast)
+forecast_italy <- forecast(ets_italy, h = n_forecast)
+forecast_total_export <- forecast(ets_total_export, h = n_forecast)
+```
+
+```{r}
+# Extract data from the forecast object
+forecast_data_germany <- data.frame(
+  Date = seq(min(Electricity$Date), by = "month", length.out = length(ts_germany) + n_forecast),
+  Value = c(ts_germany, as.numeric(forecast_germany$mean)),
+  Type = c(rep("Observed", length(ts_germany)), rep("Forecast", n_forecast))
+)
+
+# Plot forecasts
+ggplot(data = forecast_data_germany, aes(x = Date, y = Value, color = Type)) +
+  geom_line() +
+  ggtitle("Electricity Export Forecast for Germany") +
+  xlab("Year") + ylab("Export Volume")
+
+```
+
+```{r}
+# Extract data from the forecast object
+forecast_data_france <- data.frame(
+  Date = seq(min(Electricity$Date), by = "month", length.out = length(ts_france) + n_forecast),
+  Value = c(ts_france, as.numeric(forecast_france$mean)),
+  Type = c(rep("Observed", length(ts_france)), rep("Forecast", n_forecast))
+)
+
+# Plot forecasts
+ggplot(data = forecast_data_france, aes(x = Date, y = Value, color = Type)) +
+  geom_line() +
+  ggtitle("Electricity Export Forecast for France") +
+  xlab("Year") + ylab("Export Volume")
+```
+
+```{r}
+# Extract data from the forecast object
+forecast_data_austria <- data.frame(
+  Date = seq(min(Electricity$Date), by = "month", length.out = length(ts_austria) + n_forecast),
+  Value = c(ts_austria, as.numeric(forecast_austria$mean)),
+  Type = c(rep("Observed", length(ts_austria)), rep("Forecast", n_forecast))
+)
+
+# Plot forecasts
+ggplot(data = forecast_data_austria, aes(x = Date, y = Value, color = Type)) +
+  geom_line() +
+  ggtitle("Electricity Export Forecast for Austria") +
+  xlab("Year") + ylab("Export Volume")
+```
+
+```{r}
+# Extract data from the forecast object
+forecast_data_liechtenstein <- data.frame(
+  Date = seq(min(Electricity$Date), by = "month", length.out = length(ts_liechtenstein) + n_forecast),
+  Value = c(ts_liechtenstein, as.numeric(forecast_liechtenstein$mean)),
+  Type = c(rep("Observed", length(ts_liechtenstein)), rep("Forecast", n_forecast))
+)
+
+# Plot forecasts
+ggplot(data = forecast_data_liechtenstein, aes(x = Date, y = Value, color = Type)) +
+  geom_line() +
+  ggtitle("Electricity Export Forecast for Liechtenstein") +
+  xlab("Year") + ylab("Export Volume")
+```
+
+```{r}
+# Extract data from the forecast object
+forecast_data_italy <- data.frame(
+  Date = seq(min(Electricity$Date), by = "month", length.out = length(ts_italy) + n_forecast),
+  Value = c(ts_italy, as.numeric(forecast_italy$mean)),
+  Type = c(rep("Observed", length(ts_italy)), rep("Forecast", n_forecast))
+)
+
+# Plot forecasts
+ggplot(data = forecast_data_italy, aes(x = Date, y = Value, color = Type)) +
+  geom_line() +
+  ggtitle("Electricity Export Forecast for Italy") +
+  xlab("Year") + ylab("Export Volume")
+```
+
+```{r}
+# Extract data from the forecast object
+forecast_data_total_export <- data.frame(
+  Date = seq(min(Electricity$Date), by = "month", length.out = length(ts_total_export) + n_forecast),
+  Value = c(ts_total_export, as.numeric(forecast_total_export$mean)),
+  Type = c(rep("Observed", length(ts_total_export)), rep("Forecast", n_forecast))
+)
+
+# Plot forecasts
+ggplot(data = forecast_data_total_export, aes(x = Date, y = Value, color = Type)) +
+  geom_line() +
+  ggtitle("Electricity Export Forecast for all the countries") +
+  xlab("Year") + ylab("Export Volume")
+```
+
