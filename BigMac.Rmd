@@ -287,8 +287,49 @@ bigmac %>%
   theme_minimal() +
   labs(title = "BigMac Dollar Price Heatmap for Selected Countries", x = "Date", y = "Country")
 ```
+We are vizualizing our time series for the 4 countries : 
+
+```{r}
+# Plot the time series
+for (i in seq_along(selected_countries)) {
+  ts_plot <- ggplot(data = wide_bigmac, aes(x = date, y = wide_bigmac[[i + 1]])) +
+    geom_line() +
+    labs(title = paste("Time Series of", selected_countries[i]), x = "Year", y = "Dollar Price") +
+    theme_minimal()
+  print(ts_plot)
+}
+```
+We observe that Taiwan has many missing values so we will do an interpolation to counter that. 
+
 
 ## Models
+
+Let's prepare our data : 
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(forecast)
+library(ggplot2)
+# Filter the data for the 4 selected countries
+filtered_bigmac <- bigmac %>%
+  filter(country %in% selected_countries)
+# Pivot the data to a wide format
+wide_bigmac <- filtered_bigmac %>%
+  select(country, date, dollar_price) %>%
+  spread(country, dollar_price) %>%
+  arrange(date)
+# Create a time series object for each country
+time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date))), frequency = 12)
+
+#Here we do an interpolation in order to fill the NA's
+time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
+
+
+
+
+```
+
 
 First of all lets perform easy models. Here we will start with a Simple Exponential Smoothing since we have no seasonality and no clear trend in our data. 
 
@@ -320,20 +361,6 @@ for (i in seq_along(selected_countries)) {
 ```
 Here we are looking into an ETS model 
 ```{r}
-library(dplyr)
-library(tidyr)
-library(forecast)
-library(ggplot2)
-# Filter the data for the 4 selected countries
-filtered_bigmac <- bigmac %>%
-  filter(country %in% selected_countries)
-# Pivot the data to a wide format
-wide_bigmac <- filtered_bigmac %>%
-  select(country, date, dollar_price) %>%
-  spread(country, dollar_price) %>%
-  arrange(date)
-# Create a time series object for each country
-time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date))), frequency = 12)
 # Fit ETS models
 ets_models <- lapply(time_series_list, ets)
 # Forecast using ETS models
@@ -345,14 +372,6 @@ for (i in seq_along(selected_countries)) {
 ```
 We are here perfroming a STL decomposition. Since we have NA's values in our Taiwan dataset, we are currently doing an interpolation for the missing values then we perform our model. 
 ```{r}
-
-library(dplyr)
-library(tidyr)
-library(forecast)
-library(ggplot2)
-library(zoo)
-#Here we do an interpolation in order to fill the NA's
-time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
 stl_models <- lapply(time_series_list, stl, s.window = "periodic")
 
 for (i in seq_along(selected_countries)) {
@@ -382,3 +401,4 @@ for (i in seq_along(selected_countries)) {
   plot(stlf_forecasts[[i]], main = paste("STLF Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
 }
 ```
+
