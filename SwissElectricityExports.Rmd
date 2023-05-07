@@ -225,8 +225,9 @@ plot_acf(ts_liechtenstein, "Liechtenstein")
 
 ## 4.0 Modeling 
 
-### ETS model
+## 4.0 Modeling 
 
+### ETS model 
 ```{r}
 fit_and_forecast_ets <- function(ts_data, country) {
   # Fit the ETS model
@@ -246,5 +247,7 @@ fit_and_forecast_ets(ts_austria, "Austria")
 fit_and_forecast_ets(ts_liechtenstein, "Liechtenstein")
 fit_and_forecast_ets(ts_data, "Total.Export")
 
+```
+Now we can try with other models such as multiplicative or additive trend or seasonality. 
 ```
 
