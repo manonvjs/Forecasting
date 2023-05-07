@@ -4,8 +4,10 @@ nombre de valeurs dans tout les pays.
 - ARIMA model 
 - SES
 - Holt's Linear model 
-- STLF model 
+- STLF model
+- Ajout de time series pour nos 4 pays
  
-2 questions : 
+Questions : 
 Est-ce qu'on utiliserai pas ETS comme vu en cours avec additive et multiplicative ? Beaucoup de travail cela dit
 Nos modèles prédisent pour environ 2003. Il faut qu'on se mette d'accord sur quels périodes on veut forecast avec nos "h" et notre frequency pour notre time_serie_list
+Taiwan a beaucoup de NA values donc j'ai du faire une interpolation qui peut ne pas être 100% exact. On peut garder ca pour flexer un peu ou alors on peut changer de pays. 
