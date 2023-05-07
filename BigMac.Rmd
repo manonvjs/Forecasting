@@ -14,35 +14,23 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 # Data visualization
 ```{r}
 #dollars_ex is the conversation rate with the local currency. 
-
 #import data
 library(dplyr)
-
 bigmac <- read.csv("BigmacPrice.csv", header = TRUE)
-
 #rename columns
 names(bigmac)[names(bigmac) == "name"] <- "country"
-
 print(bigmac)
-
 #convert date to date format 
-
 bigmac$date <-as.Date(bigmac$date, format = "%Y-%m-%d")
-
 #average price per country
 library(dplyr)
-
 bigmac_grouped <- bigmac %>%
   group_by(country)
-
 bigmac_avg <- bigmac_grouped %>%
   summarise(avg_price = mean(dollar_price))
-
 print(bigmac_avg)
-
 #graph avg
 library(ggplot2)
-
 graph_bigmac_avg <- ggplot(bigmac_avg, aes(x=country, y=avg_price)) +
   geom_segment( aes(x=country, xend=country, y=0, yend=avg_price
 ), color="skyblue") +
@@ -58,7 +46,6 @@ graph_bigmac_avg <- ggplot(bigmac_avg, aes(x=country, y=avg_price)) +
     panel.border = element_blank(),
     axis.ticks.y = element_blank() 
 )
-
 graph_bigmac_avg
 ```
 On the blue graph, we see that Norway has the most expensive bigmac in average, and Oman and Kowait the most cheepest ones. 
@@ -73,7 +60,6 @@ bigmac %>%
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title = "Average BigMac Dollar Price by Country", x = "Country", y = "Average Dollar Price")
-
 ```
 On the previous graph, we can see the cheapest to the most expensive bigmac sandwich in dollars. 
 
@@ -83,22 +69,17 @@ For the analysis, we select the few following countries: Norway, Oman, Mexico, G
 #filter countries
 library(ggplot2)
 library(dplyr)
-
 bigmac_subset <- bigmac %>% 
   filter(country %in% c("Norway", "Oman", "Thailand", "Mexico", "France"))
-
 bigmac_subset$date <- as.Date(paste0(bigmac_subset$date, "-01-01"))
-
 ggplot(data = bigmac_subset, aes(x = date, y = dollar_price, color = country)) +
   geom_line() +
   labs(title = "BigMac prices through years",
        x = "date",
        y = "dollar_price") +
   scale_color_discrete(name = "country")
-
 #Compute the number of data per country
 library(dplyr)
-
 data_country <- bigmac %>% 
   group_by(country) %>% 
   summarise(num_data = n())
@@ -114,14 +95,12 @@ ggplot(data = bigmac, aes(x = country, y = dollar_price, fill = country)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title = "BigMac Dollar Price Distribution by Country", x = "Country", y = "Dollar Price")
-
 ```
 On this graph, we can see the scale of the different prices of a Bigmac sandwich per country. We can see that in Venezuela, in Brazil, in Turkey and in Australia, the prices fluctuate a lot. At the opposite, some countries as Taiyan, Switzerland and Honduras have almost the same price for years. We can probably explain this variation with the economical and political situation of the given country. 
 
 ```{r}
 library(tidyr)
 library(viridis)
-
 # Heatmap to see the evolution of dollars price per country
 bigmac %>%
   group_by(country, date) %>%
@@ -133,54 +112,40 @@ bigmac %>%
   scale_fill_viridis(name = "Dollar Price") +
   theme_minimal() +
   labs(title = "BigMac Dollar Price Heatmap", x = "Date", y = "Country")
-
 ```
 This heatmap displays the the level of price per country. The lighter color shows the highest prices, and at the opposite, the darker colors represent the lowest prices. The prices change through years. Indeed, we can see that in Brazil, the prices were quite cheap until 2007. Then they started to increase until 2013. And from 2013, the prices decrease again. For a lot of countries we can see that in 2010-2013, the prices increased. 
 
 Ici j'ai rajouté les régions géographiques pour chaques pays pour voir si les groupes sont cohérants
 ```{r}
-
 #Adding Region to the dataset
 country_region <- c("South America", "Oceania", "South America", "Europe", "North America", "South America", "Asia", "Europe", "Europe", "Europe", "Asia", "Europe", "Asia", "Asia", "Asia", "Asia", "North America", "Oceania", "Europe", "Europe", "Asia", "Africa", "Asia", "Europe", "Europe", "Asia", "Asia", "North America", "Asia", "Europe", "South America", "Europe", "South America", "Africa", "South America", "Central America", "Asia", "Asia", "Asia", "Europe", "South America", "Asia", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Asia", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Asia", "Asia", "Asia", "Asia", "Europe", "Central America", "Central America", "Asia", "Asia", "Europe", "Asia", "Europe", "Asia", "Central America", "Asia", "Asia", "Europe", "Europe", "Europe", "Asia")
 names(country_region) <- c("Argentina", "Australia", "Brazil", "Britain", "Canada", "Chile", "China", "Czech Republic", "Denmark", "Euro area", "Hong Kong", "Hungary", "Indonesia", "Israel", "Japan", "Malaysia", "Mexico", "New Zealand", "Poland", "Russia", "Singapore", "South Africa", "South Korea", "Sweden", "Switzerland", "Taiwan", "Thailand", "United States", "Philippines", "Norway", "Peru", "Turkey", "Venezuela", "Egypt", "Colombia", "Costa Rica", "Pakistan", "Saudi Arabia", "Sri Lanka", "Ukraine", "Uruguay", "UAE", "Austria", "Belgium", "Estonia", "Finland", "France", "Germany", "Greece", "India", "Ireland", "Italy", "Netherlands", "Portugal", "Spain", "Lithuania", "Vietnam", "Azerbaijan", "Bahrain", "Croatia", "Guatemala", "Honduras", "Jordan", "Kuwait", "Latvia", "Lebanon", "Moldova", "Nicaragua", "Oman", "Qatar", "Romania", "Slovakia", "Slovenia", "United Arab Emirates")
-
-
 #New dataset of bigmax with regions
 bigmac_region <- bigmac %>% mutate(Region = country_region[country])
-
 #Boxplot analysis
 ggplot(bigmac_region, aes(x = Region, y = dollar_price)) +
   geom_boxplot() +
   theme_minimal() +
   labs(title = "Big Mac Index Distribution by Region", x = "Region", y = "Big Mac Index")
-
 bigmac_region_date <- bigmac_region %>% mutate(Date = as.Date(date, format = "%Y-%m-%d"))
-
-
 #Regional Big Mac Index trends
-
 ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
   geom_line() +
   theme_minimal() +
   labs(title = "Big Mac Index Time Series by Region", x = "Date", y = "Big Mac Index") +
   theme(legend.title = element_blank()) +
   facet_wrap(~ Region, scales = "free_y", nrow = 2)
-
 ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
   geom_line() +
   theme_minimal() +
   labs(title = "Big Mac Index Time Series by Region", x = "Date", y = "Big Mac Index") +
   theme(legend.title = element_blank())
-
-
-
 ```
 
 ```{r}
 bigmac_region_avg <- bigmac_region %>%
   group_by(Region, year = format(date, "%Y")) %>%
   summarize(avg_dollar_price = mean(dollar_price), .groups = "drop")
-
 ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
   geom_point(alpha = 0.5) +
   geom_line(data = bigmac_region_avg, aes(x = as.Date(paste(year, "-01-01", sep = ""), format = "%Y-%m-%d"), y = avg_dollar_price), size = 1.5) +
@@ -221,36 +186,26 @@ inflation_data_clean <- inflation_data %>%
 ```{r}
 #. Remove NA 
 inf <- na.omit(inflation_data_clean)
-
 # Only keep years from 2000 to 2022
 inf_filtered <- inf %>% filter(Year >= 2000 & Year <= 2022)
-
 # to only have the years 
 bigmac$Year <- format(as.Date(bigmac$date), "%Y")
-
 #Remove unnecessary collumns 
 bigmacc <- bigmac[, c(-1, -2, -4, -5)]
-
 #Rename column
 bigmacc <- bigmacc %>%
     rename(Country = country)
-
 #column year in integer
 bigmacc$Year <- as.integer(bigmacc$Year)
-
 #
 bigmacc <- bigmacc %>%
  group_by(Country, Year) %>%
      summarise(avg_dollar_price = mean(dollar_price, na.rm = TRUE))
-
-
 #Merge the data per year and country
 merged_data <- inner_join(inf_filtered, bigmacc, by = c("Country", "Year"))
-
 # Compute correlations by country
 by_country <- merged_data %>% 
     group_by(Country)
-
 corr_by_country <- merged_data %>%
      group_by(Country) %>%
      summarise(cor = cor(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs"),
@@ -271,18 +226,13 @@ print(corr_by_country)
 selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
 bigmac_filtered <- bigmac %>%
   filter(country %in% selected_countries)
-
 bigmac_grouped2 <- bigmac_filtered %>%
   group_by(country)
-
 bigmac_avg2 <- bigmac_grouped2 %>%
   summarise(avg_price = mean(dollar_price))
-
 print(bigmac_avg2)
-
 #graph avg
 library(ggplot2)
-
 graph_bigmac_avg2 <- ggplot(bigmac_avg2, aes(x=country, y=avg_price)) +
   geom_segment( aes(x=country, xend=country, y=0, yend=avg_price
 ), color="darkorange") +
@@ -298,9 +248,7 @@ graph_bigmac_avg2 <- ggplot(bigmac_avg2, aes(x=country, y=avg_price)) +
     panel.border = element_blank(),
     axis.ticks.y = element_blank() 
 )
-
 graph_bigmac_avg2
-
 ```
 
 ```{r}
@@ -314,7 +262,6 @@ bigmac %>%
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title = "Average BigMac Dollar Price by Selected Countries", x = "Country", y = "Average Dollar Price")
-
 ```
 
 ```{r}
@@ -343,6 +290,35 @@ bigmac %>%
 
 ## Models
 
+First of all lets perform easy models. Here we will start with a Simple Exponential Smoothing since we have no seasonality and no clear trend in our data. 
+
+```{r}
+# Fit Simple Exponential Smoothing (SES) models
+ses_models <- lapply(time_series_list, ses)
+
+# Forecast using SES models
+ses_forecasts <- lapply(ses_models, forecast, h = 10)
+
+# Plot forecasts
+for (i in seq_along(selected_countries)) {
+  plot(ses_forecasts[[i]], main = paste("SES Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
+}
+```
+We are now performing a Holt's Linear model with only trend but no seasonality. 
+
+```{r}
+# Fit Holt's Linear Trend models
+holt_models <- lapply(time_series_list, holt)
+
+# Forecast using Holt's Linear Trend models
+holt_forecasts <- lapply(holt_models, forecast, h = 10)
+
+# Plot forecasts
+for (i in seq_along(selected_countries)) {
+  plot(holt_forecasts[[i]], main = paste("Holt's Linear Trend Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
+}
+```
+Here we are looking into an ETS model 
 ```{r}
 library(dplyr)
 library(tidyr)
@@ -351,28 +327,58 @@ library(ggplot2)
 # Filter the data for the 4 selected countries
 filtered_bigmac <- bigmac %>%
   filter(country %in% selected_countries)
-
 # Pivot the data to a wide format
 wide_bigmac <- filtered_bigmac %>%
   select(country, date, dollar_price) %>%
   spread(country, dollar_price) %>%
   arrange(date)
-
 # Create a time series object for each country
 time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date))), frequency = 12)
-
 # Fit ETS models
 ets_models <- lapply(time_series_list, ets)
-
 # Forecast using ETS models
 ets_forecasts <- lapply(ets_models, forecast, h = 12)
-
 # Plot forecasts
 for (i in seq_along(selected_countries)) {
   plot(ets_forecasts[[i]], main = paste("ETS Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
 }
+```
+We are here perfroming a STL decomposition. Since we have NA's values in our Taiwan dataset, we are currently doing an interpolation for the missing values then we perform our model. 
+```{r}
+
+library(dplyr)
+library(tidyr)
+library(forecast)
+library(ggplot2)
+library(zoo)
+#Here we do an interpolation in order to fill the NA's
+time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
+stl_models <- lapply(time_series_list, stl, s.window = "periodic")
+
+for (i in seq_along(selected_countries)) {
+  plot(stl_models[[i]], main = paste("STL Decomposition for", selected_countries[i]))
+}
 
 ```
+Now we are perfomring an ARIMA model for our 4 countries : 
+```{r}
+# Fit ARIMA models and forecast
+arima_models <- lapply(time_series_list, auto.arima)
+arima_forecasts <- lapply(arima_models, forecast, h = 12)
 
+# Plot ARIMA forecasts
+for (i in seq_along(selected_countries)) {
+  plot(arima_forecasts[[i]], main = paste("ARIMA Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
+}
+```
+Here, we perform a STLF (Seasonal Decomposition of Time Series + ARIMA forecasting) for our 4 countries. 
+```{r}
+# Fit STLF models and forecast
+stlf_models <- lapply(time_series_list, stlf)
+stlf_forecasts <- lapply(stlf_models, forecast, h = 12)
 
-
+# Plot STLF forecasts
+for (i in seq_along(selected_countries)) {
+  plot(stlf_forecasts[[i]], main = paste("STLF Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
+}
+```
