@@ -1,0 +1,11 @@
+07 Mai : 
+- J'ai essayé de faire une STL décomposition pour les "selected_countries" mais ce modèle n'accepte pas les NA donc j'ai du effectué une interpolation pour avoir le même 
+nombre de valeurs dans tout les pays.
+- ARIMA model 
+- SES
+- Holt's Linear model 
+- STLF model 
+ 
+2 questions : 
+Est-ce qu'on utiliserai pas ETS comme vu en cours avec additive et multiplicative ? Beaucoup de travail cela dit
+Nos modèles prédisent pour environ 2003. Il faut qu'on se mette d'accord sur quels périodes on veut forecast avec nos "h" et notre frequency pour notre time_serie_list
