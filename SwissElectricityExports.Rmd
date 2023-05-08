@@ -1,24 +1,12 @@
 ---
 title: "Swiss electricty exports"
-output:
-  html_document:
-    df_print: paged
+output: html_notebook
 ---
-
-```{r setup, include=FALSE} 
-knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
-```
-
 First of all let us import the data : 
 ```{r}
 #import data
 library(readxl)
 library(feasts)
-library(forecast)
-library(tsibble)
-library(feasts)
-library(ggplot2)
-library(zoo)
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
 ## 1 Data and Wrangling 
@@ -57,7 +45,7 @@ print(missing_values_per_column)
 ```
 So apparently, there are are no missing values in our data. 
 
-```{r eval=FALSE}
+```{r eval=FALSE, include=FALSE}
 # Function to identify and treat outliers using the IQR method
 treat_outliers_iqr <- function(data, k = 1.5) {
   Q1 <- quantile(data, 0.25)
@@ -164,6 +152,10 @@ for (country in countries) {
 ```
 
 ```{r}
+# Load necessary libraries
+library(tsibble)
+library(feasts)
+
 # Convert the time series objects to tsibble objects
 ts_data_tsibble <- ts_data %>% as_tsibble(index = index(ts_data))
 ts_germany_tsibble <- ts_germany %>% as_tsibble(index = index(ts_germany))
@@ -174,23 +166,28 @@ ts_liechtenstein_tsibble <- ts_liechtenstein %>% as_tsibble(index = index(ts_lie
 
 # Create seasonal subseries plots for each country using tsibble objects
 germany_plot <- gg_subseries(ts_germany_tsibble) +
-  labs(title = "Seasonal Subseries Plot for Germany", x = "Month", y = "Electricity Export (GWh)")
+  ggtitle("Seasonal Subseries Plot for Germany") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
 
 france_plot <- gg_subseries(ts_france_tsibble) +
-  labs(title = "Seasonal Subseries Plot for France", x = "Month", y = "Electricity Export (GWh)")
+  ggtitle("Seasonal Subseries Plot for France") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
 
 austria_plot <- gg_subseries(ts_austria_tsibble) +
-  labs(title = "Seasonal Subseries Plot for Austria", x = "Month", y = "Electricity Export (GWh)")
+  ggtitle("Seasonal Subseries Plot for Austria") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
 
 liechtenstein_plot <- gg_subseries(ts_liechtenstein_tsibble) +
-  labs(title = "Seasonal Subseries Plot for Liechtenstein", x = "Month", y = "Electricity Export (GWh)")
+  ggtitle("Seasonal Subseries Plot for Liechtenstein") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
 
 italy_plot <- gg_subseries(ts_italy_tsibble) +
-  labs(title = "Seasonal Subseries Plot for Italy", x = "Month", y = "Electricity Export (GWh)")
+  ggtitle("Seasonal Subseries Plot for Italy") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
 
 total_export_plot <- gg_subseries(ts_data_tsibble) +
-  labs(title = "Seasonal Subseries Plot for Total.Export", x = "Month", y = "Electricity Export (GWh)")
-
+  ggtitle("Seasonal Subseries Plot for Total.Export") +
+  xlab("Month") + ylab("Electricity Export (GWh)")
 
 # Display the plots
 print(germany_plot)
@@ -199,18 +196,21 @@ print(austria_plot)
 print(liechtenstein_plot)
 print(italy_plot)
 print(total_export_plot)
-```
 
+```
 ```{r}
+# Load necessary library
+library(ggplot2)
+
 # Function to create ACF plot for a given time series
 plot_acf <- function(ts_data, country) {
   acf_data <- acf(ts_data, plot = FALSE)
   acf_df <- data.frame(Lag = 1:length(acf_data$acf), ACF = acf_data$acf)
   ggplot(acf_df, aes(x = Lag, y = ACF)) + geom_bar(stat = "identity") +
-    labs(title = paste("ACF plot for", country), x = "Lag", y = "Autocorrelation") +
+    ggtitle(paste("ACF plot for", country)) +
+    xlab("Lag") + ylab("Autocorrelation") +
     theme_minimal()
 }
-
 
 # Create and display ACF plots for each country
 plot_acf(ts_data, "Total.Export")
@@ -219,11 +219,10 @@ plot_acf(ts_france, "France")
 plot_acf(ts_italy, "Italy")
 plot_acf(ts_austria, "Austria")
 plot_acf(ts_liechtenstein, "Liechtenstein")
+
+
 ```
-
 ## 3.0 Cleaning and wrankling
-
-## 4.0 Modeling 
 
 ## 4.0 Modeling 
 
@@ -249,5 +248,156 @@ fit_and_forecast_ets(ts_data, "Total.Export")
 
 ```
 Now we can try with other models such as multiplicative or additive trend or seasonality. 
-```
 
+
+### ARIMA model 
+
+```{r}
+# Load the forecast package
+library(forecast)
+
+# Function to fit and forecast ARIMA model
+fit_and_forecast_arima <- function(ts_data, country) {
+  # Fit the ARIMA model
+  arima_model <- auto.arima(ts_data)
+  
+  # Generate a forecast
+  arima_forecast <- forecast(arima_model, h = 12) # Forecast 12 months ahead
+  
+  # Plot the forecast
+  plot(arima_forecast, main = paste("ARIMA Forecast for", country))
+}
+
+# Apply the function to your time series data for each country
+fit_and_forecast_arima(ts_germany, "Germany")
+fit_and_forecast_arima(ts_france, "France")
+fit_and_forecast_arima(ts_italy, "Italy")
+fit_and_forecast_arima(ts_austria, "Austria")
+fit_and_forecast_arima(ts_liechtenstein, "Liechten")
+fit_and_forecast_arima(ts_data, "Total.Export")
+```
+### SARIMA (ARIMA with seasonality)
+
+```{r}
+# Load the forecast package
+library(forecast)
+
+# Function to fit and forecast ARIMA model
+fit_and_forecast_sarima <- function(ts_data, country) {
+  # Fit the ARIMA model
+  sarima_model <- auto.arima(ts_data, seasonal = TRUE)
+  
+  # Generate a forecast
+  sarima_forecast <- forecast(sarima_model, h = 12) # Forecast 12 months ahead
+  
+  # Plot the forecast
+  plot(sarima_forecast, main = paste("SARIMA Forecast for", country))
+}
+
+# Apply the function to your time series data for each country
+fit_and_forecast_sarima(ts_germany, "Germany")
+fit_and_forecast_sarima(ts_france, "France")
+fit_and_forecast_sarima(ts_italy, "Italy")
+fit_and_forecast_sarima(ts_austria, "Austria")
+fit_and_forecast_sarima(ts_liechtenstein, "Liechten")
+fit_and_forecast_sarima(ts_data, "Total.Export")
+```
+### Accuracy tests for our forecasts
+```{r}
+# Load the forecast package
+library(forecast)
+
+# Split the data into a training and a test set
+train_data <- window(ts_germany, end = c(2019, 12))
+test_data <- window(ts_germany, start = c(2020, 1))
+
+# Fit the SARIMA model
+sarima_model <- auto.arima(train_data, seasonal = TRUE)
+
+# Fit the ETS model
+ets_model <- ets(train_data, model = "ANA")
+
+# Fir the ARIMA model
+arima_model <- auto.arima(train_data, seasonal = FALSE)
+
+# Generate forecasts for both models
+sarima_forecast <- forecast(sarima_model, h = length(test_data))
+ets_forecast <- forecast(ets_model, h = length(test_data))
+arima_forecast <- forecast(arima_model, h = length(test_data))
+
+
+# Calculate accuracy metrics for both models
+accuracy_sarima <- forecast::accuracy(sarima_forecast, test_data)
+accuracy_ets <- forecast::accuracy(ets_forecast, test_data)
+accuracy_arima <- forecast::accuracy(arima_forecast, test_data)
+
+# Compare accuracy metrics
+print("SARIMA model accuracy:")
+print(accuracy_sarima)
+print("ETS model accuracy:")
+print(accuracy_ets)
+print("ARIMA model accuracy:")
+print(accuracy_arima)
+```
+J'ai créé une fonction pour essayer de le calculer pour tout les pays : 
+
+
+```{r}
+
+library(forecast)
+
+compare_models <- function(ts_data) {
+ # Train-test split
+train_data <- window(ts_data, end = c(2019, 12))
+test_data <- window(ts_data, start = c(2020, 1))
+  
+  # ETS models
+  ets_zzz <- ets(train_data, model = "ZZZ")
+  ets_ana <- ets(train_data, model = "ANA")
+  ets_mnm <- ets(train_data, model = "MNM")
+  #ets_anm <- ets(train_data, model = "ANM")
+  ets_aaa <- ets(train_data, model = "AAA")
+  
+  ets_zzz_forecast <- forecast(ets_zzz, h=length(test_data))
+  ets_ana_forecast <- forecast(ets_ana, h=length(test_data))
+  ets_mnm_forecast <- forecast(ets_mnm, h=length(test_data))
+  #ets_anm_forecast <- forecast(ets_anm, h=length(test_data))
+  ets_aaa_forecast <- forecast(ets_aaa, h=length(test_data))
+  
+  # ARIMA model
+  arima_model <- auto.arima(train_data, seasonal = FALSE)
+  arima_forecast <- forecast(arima_model, h=length(test_data))
+  
+  # SARIMA model
+  sarima_model <- auto.arima(train_data, seasonal=TRUE)
+  sarima_forecast <- forecast(sarima_model, h=length(test_data))
+  
+  # Calculate accuracy
+  accuracy_ets_zzz <- forecast::accuracy(ets_zzz_forecast, test_data)
+  accuracy_ets_ana <- forecast::accuracy(ets_ana_forecast, test_data)
+  accuracy_ets_mnm <- forecast::accuracy(ets_mnm_forecast, test_data)
+  #accuracy_ets_anm <- accuracy(ets_anm_forecast, test_data)
+  accuracy_ets_aaa <- forecast::accuracy(ets_aaa_forecast, test_data)
+  accuracy_arima <- forecast::accuracy(arima_forecast, test_data)
+  accuracy_sarima <- forecast::accuracy(sarima_forecast, test_data)
+  
+  # Combine accuracy results
+  accuracy_results <- list(
+    ETS_ZZZ=accuracy_ets_zzz,
+    ETS_ANA=accuracy_ets_ana,
+    ETS_MNM=accuracy_ets_mnm,
+    #ETS_ANM=accuracy_ets_anm,
+    ETS_AAA=accuracy_ets_aaa,
+    ARIMA=accuracy_arima,
+    SARIMA=accuracy_sarima
+  )
+  
+  return(accuracy_results)
+}
+
+# Example usage
+accuracy_results_germany <- compare_models(ts_germany)
+
+accuracy_results_germany
+
+```
