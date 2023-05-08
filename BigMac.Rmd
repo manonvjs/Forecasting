@@ -287,21 +287,6 @@ bigmac %>%
   theme_minimal() +
   labs(title = "BigMac Dollar Price Heatmap for Selected Countries", x = "Date", y = "Country")
 ```
-We are vizualizing our time series for the 4 countries : 
-
-```{r}
-# Plot the time series
-for (i in seq_along(selected_countries)) {
-  ts_plot <- ggplot(data = wide_bigmac, aes(x = date, y = wide_bigmac[[i + 1]])) +
-    geom_line() +
-    labs(title = paste("Time Series of", selected_countries[i]), x = "Year", y = "Dollar Price") +
-    theme_minimal()
-  print(ts_plot)
-}
-```
-We observe that Taiwan has many missing values so we will do an interpolation to counter that. 
-
-
 ## Models
 
 Let's prepare our data : 
@@ -311,6 +296,7 @@ library(dplyr)
 library(tidyr)
 library(forecast)
 library(ggplot2)
+library(zoo)
 # Filter the data for the 4 selected countries
 filtered_bigmac <- bigmac %>%
   filter(country %in% selected_countries)
@@ -324,11 +310,21 @@ time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$d
 
 #Here we do an interpolation in order to fill the NA's
 time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
-
-
-
-
 ```
+
+We are vizualizing our time series for the 4 countries : 
+
+```{r}
+# Plot the time series
+for (i in seq_along(selected_countries)) {
+  ts_plot <- ggplot(data = wide_bigmac, aes(x = date, y = wide_bigmac[[i + 1]])) +
+    geom_line() +
+    labs(title = paste("Time Series of", selected_countries[i]), x = "Year", y = "Dollar Price") +
+    theme_minimal()
+  print(ts_plot)
+}
+```
+We observe that Taiwan has many missing values so we will do an interpolation to counter that. 
 
 
 First of all lets perform easy models. Here we will start with a Simple Exponential Smoothing since we have no seasonality and no clear trend in our data. 

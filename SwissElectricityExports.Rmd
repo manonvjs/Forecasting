@@ -445,3 +445,68 @@ For overall data  :
 ```{r}
 compare_models(ts_data)
 ```
+```{r}
+library(fable)
+# List of country tsibbles
+country_tsibbles <- list(
+  Germany = ts_germany_tsibble,
+  Italy = ts_italy_tsibble,
+  Austria = ts_austria_tsibble,
+  France = ts_france_tsibble,
+  Liechtenstein = ts_liechtenstein_tsibble
+)
+
+# Function to create ensemble forecasts for each country
+ensemble_forecasts <- function(ts_country_tsibble) {
+  
+  # Check if any value is non-positive and replace it with a small positive value
+  if (any(ts_country_tsibble$value <= 0)) {
+    ts_country_tsibble$value <- pmax(ts_country_tsibble$value, 1e-9)
+  }
+  
+  # Create STLF model using STL decomposition and ETS for seasonally adjusted data
+  STLF <- decomposition_model(
+    STL(log(value) ~ season(window = Inf)),
+    ETS(season_adjust ~ season("N"))
+  )
+  
+  # Fit the models and create ensemble using dplyr and fable
+  country_models <- ts_country_tsibble %>%
+    model(
+      ets = ETS(value),
+      stlf = STLF,
+      arima = ARIMA(log(value))
+    ) %>%
+    mutate(combination = (ets + stlf + arima) / 3) %>%
+    # Handle any errors during the model fitting process
+    tryCatch(
+      error = function(e) {
+        warning("Error encountered during model fitting: ", conditionMessage(e))
+        return(NULL)
+      }
+    )
+  
+  if (is.null(country_models)) {
+    return(NULL)
+  }
+  
+  # Forecast for 5 years (60 months)
+  country_forecast <- country_models %>%
+    forecast(h = 60) %>%
+    # Handle any errors during the forecasting process
+    tryCatch(
+      error = function(e) {
+        warning("Error encountered during forecasting: ", conditionMessage(e))
+        return(NULL)
+      }
+    )
+  
+  return(country_forecast)
+}
+
+# Apply the function to all country tsibbles
+forecast_results <- lapply(country_tsibbles, ensemble_forecasts)
+
+# Example usage: Access forecasts for Germany
+forecast_results$Germany
+```
