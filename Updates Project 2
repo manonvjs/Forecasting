@@ -1,0 +1,7 @@
+9 mai 2023 : 
+- Représentation des modèles ARIMA, SARIMA, ETS (choisi automatiquement le meilleur)
+- Creation d'une fonction qui calcule l'accuracy avec une training set de 0.8 -> nous dit quel modèle est le meilleur pour chaques pays
+
+Question : 
+Faut-il faire une stepwise regression et faire des modèles à partir de ca ? 
+On devrai peut etre essayer de prendre les 2-3 meilleurs modèles de chaques pays et en faire une combinaison. A voir si ca a du sens.  
