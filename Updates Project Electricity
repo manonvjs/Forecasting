@@ -5,3 +5,4 @@
 Question : 
 Faut-il faire une stepwise regression et faire des modèles à partir de ca ? 
 On devrai peut etre essayer de prendre les 2-3 meilleurs modèles de chaques pays et en faire une combinaison. A voir si ca a du sens.  
+ya moyen ptit covariate à nous donner ?
