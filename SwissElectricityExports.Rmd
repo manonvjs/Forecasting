@@ -130,7 +130,8 @@ Italie : Clear seasonality with raises in Winter and drops in Summer. As for the
 
 Lichtenstein : Clear sesonality with drops every beggning of the years while raising for the Summer. The trend shows constant value until 2017 where there is a huge raise until 2020. This raise is followed by a drop until 2021 and then a small increase.
 
-```{r}
+```{r eval=FALSE, include=FALSE}
+library(ggseas)
 # Function to create and display the seasonal subseries plot for a given country
 plot_seasonal_subseries <- function(data, country) {
   # Create a time series object
@@ -367,6 +368,7 @@ compare_models <- function(ts_data) {
   # ETS models
   ets_zzz <- ets(train_data, model = "ZZZ")
   ets_ana <- ets(train_data, model = "ANA")
+  #ets_mam <- ets(train_data, model = "MAM")
   
   if (all(train_data > 0)) {
     ets_mnm <- ets(train_data, model = "MNM")
@@ -379,6 +381,7 @@ compare_models <- function(ts_data) {
   ets_zzz_forecast <- forecast(ets_zzz, h=length(test_data))
   ets_ana_forecast <- forecast(ets_ana, h=length(test_data))
   ets_aaa_forecast <- forecast(ets_aaa, h=length(test_data))
+  #ets_mam_forecast <- forecast(ets_mam, h=length(test_data))
   
   # ARIMA model
   arima_model <- auto.arima(train_data, seasonal = FALSE)
@@ -392,6 +395,7 @@ compare_models <- function(ts_data) {
   accuracy_ets_zzz <- forecast::accuracy(ets_zzz_forecast, test_data)
   accuracy_ets_ana <- forecast::accuracy(ets_ana_forecast, test_data)
   accuracy_ets_aaa <- forecast::accuracy(ets_aaa_forecast, test_data)
+  #accuracy_ets_mam <- forecast::accuracy(ets_mam_forecast, test_data)
   accuracy_arima <- forecast::accuracy(arima_forecast, test_data)
   accuracy_sarima <- forecast::accuracy(sarima_forecast, test_data)
   
@@ -400,6 +404,7 @@ compare_models <- function(ts_data) {
     ETS_ZZZ=accuracy_ets_zzz,
     ETS_ANA=accuracy_ets_ana,
     ETS_AAA=accuracy_ets_aaa,
+    #ETS_MAM=accuracy_ets_mam,
     ARIMA=accuracy_arima,
     SARIMA=accuracy_sarima
   )
@@ -416,35 +421,50 @@ compare_models <- function(ts_data) {
 compare_models(ts_germany)
 
 ```
+We can say the the ETS with additive Error, no trend and additive seasonality should be the best. 
+
 For Italy : 
 
 ```{r}
 compare_models(ts_italy)
 ```
+Here again we can say that the model with additive error, no seasonality and additive trend is the best 
 
 For Austria : 
 
 ```{r}
 compare_models(ts_austria)
 ```
+For Austria, we can say the the SAMIRA model is the best
+
 
 For France : 
 
 ```{r}
 compare_models(ts_france)
 ```
+Here the ETS with Multiplicative error, no trend and multiplicative seasonlaity is the best 
 
 For Liechtenstein : 
 
 ```{r}
 compare_models(ts_liechtenstein)
 ```
+ARIMA is the best model to forecast the next years 
+
 
 For overall data  : 
 
 ```{r}
 compare_models(ts_data)
 ```
+For the overall data, ARIMA is by far the best model. 
+
+
+QUESTION : Should we do a stepwise regression in order to forecast too ?
+
+
+
 ```{r}
 library(fable)
 # List of country tsibbles
