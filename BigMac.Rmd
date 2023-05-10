@@ -197,25 +197,30 @@ bigmacc <- bigmacc %>%
     rename(Country = country)
 #column year in integer
 bigmacc$Year <- as.integer(bigmacc$Year)
-#
+# the average dollar price of the Big Mac for each country and year
 bigmacc <- bigmacc %>%
  group_by(Country, Year) %>%
      summarise(avg_dollar_price = mean(dollar_price, na.rm = TRUE))
-#Merge the data per year and country
-merged_data <- inner_join(inf_filtered, bigmacc, by = c("Country", "Year"))
+#Merge the data per year and for the 4 countries
+countries <- c("Taiwan", "Switzerland", "Brazil", "Venezuela")
+merged_data <- inner_join(inf_filtered %>% filter(Country %in% countries),
+                          bigmacc %>% filter(Country %in% countries),
+                          by = c("Country", "Year"))
+
 # Compute correlations by country
 by_country <- merged_data %>% 
     group_by(Country)
+
 corr_by_country <- merged_data %>%
      group_by(Country) %>%
      summarise(cor = cor(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs"),
-               p_value = cor.test(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs")$p.value) %>%
-     filter(p_value < 0.05)
+               p_value = cor.test(Inflation_Rate, avg_dollar_price, use = "pairwise.complete.obs")$p.value)
 ```
 
 ```{r}
 print(corr_by_country)
 ```
+
 
 # Focus on selected countries
 
