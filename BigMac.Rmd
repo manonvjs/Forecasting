@@ -310,7 +310,15 @@ wide_bigmac <- filtered_bigmac %>%
   select(country, date, dollar_price) %>%
   spread(country, dollar_price) %>%
   arrange(date)
+
+wide_bigmac_yearly <- wide_bigmac %>%
+  mutate(year = year(date)) %>%
+  group_by(year) %>%
+  summarise(across(starts_with(selected_countries), mean, na.rm = TRUE))
+
 # Create a time series object for each country
+# time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = min(wide_bigmac_yearly$year), frequency = 1)
+# time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date))), frequency = 12)
 time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date))), frequency = 12)
 
 #Here we do an interpolation in order to fill the NA's
@@ -339,12 +347,25 @@ First of all lets perform easy models. Here we will start with a Simple Exponent
 ses_models <- lapply(time_series_list, ses)
 
 # Forecast using SES models
-ses_forecasts <- lapply(ses_models, forecast, h = 10)
+ses_forecasts <- lapply(ses_models, forecast, h = 5)
 
 # Plot forecasts
 for (i in seq_along(selected_countries)) {
   plot(ses_forecasts[[i]], main = paste("SES Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
 }
+
+library(zoo)
+library(ggplot2)
+
+yearly_forecasts <- lapply(ses_forecasts, function(x) {
+  forecast_data <- data.frame(Date = time(x$mean), Forecast = x$mean)
+  forecast_data$Year <- format(as.Date(as.yearmon(forecast_data$Date)), "%Y")
+  yearly_forecast <- forecast_data %>%
+    group_by(Year) %>%
+    summarise(Avg_Forecast = mean(Forecast))
+  return(yearly_forecast)
+})
+
 ```
 We are now performing a Holt's Linear model with only trend but no seasonality. 
 
@@ -365,7 +386,7 @@ Here we are looking into an ETS model
 # Fit ETS models
 ets_models <- lapply(time_series_list, ets)
 # Forecast using ETS models
-ets_forecasts <- lapply(ets_models, forecast, h = 12)
+ets_forecasts <- lapply(ets_models, forecast, h = 5)
 # Plot forecasts
 for (i in seq_along(selected_countries)) {
   plot(ets_forecasts[[i]], main = paste("ETS Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
@@ -378,13 +399,12 @@ stl_models <- lapply(time_series_list, stl, s.window = "periodic")
 for (i in seq_along(selected_countries)) {
   plot(stl_models[[i]], main = paste("STL Decomposition for", selected_countries[i]))
 }
-
 ```
 Now we are perfomring an ARIMA model for our 4 countries : 
 ```{r}
 # Fit ARIMA models and forecast
 arima_models <- lapply(time_series_list, auto.arima)
-arima_forecasts <- lapply(arima_models, forecast, h = 12)
+arima_forecasts <- lapply(arima_models, forecast, h = 5)
 
 # Plot ARIMA forecasts
 for (i in seq_along(selected_countries)) {
@@ -395,7 +415,7 @@ Here, we perform a STLF (Seasonal Decomposition of Time Series + ARIMA forecasti
 ```{r}
 # Fit STLF models and forecast
 stlf_models <- lapply(time_series_list, stlf)
-stlf_forecasts <- lapply(stlf_models, forecast, h = 12)
+stlf_forecasts <- lapply(stlf_models, forecast, h = 12 )
 
 # Plot STLF forecasts
 for (i in seq_along(selected_countries)) {
@@ -403,3 +423,42 @@ for (i in seq_along(selected_countries)) {
 }
 ```
 
+Let's introduce the covariates
+
+```{r}
+# Import the data
+gdpgrowth <- read_csv("gdpgrowth.csv")
+gdpgrowth$ref_area.label[gdpgrowth$ref_area.label == "Taiwan, China"] <- "Taiwan"
+gdpgrowth$ref_area.label[gdpgrowth$ref_area.label == "Venezuela, Bolivarian Republic of"] <- "Venezuela"
+
+# Filter the data for the selected countries
+filtered_gdpgrowth <- gdpgrowth %>%
+  filter(ref_area.label %in% selected_countries)
+
+# Initialize a list to hold dataframes for each country
+country_dfs <- list()
+
+# Loop over each country and create a dataframe
+for (country in selected_countries) {
+  # Filter data for the current country
+  country_data <- filtered_gdpgrowth %>% 
+    filter(ref_area.label == country)
+  
+  # Create a new dataframe with yearly data
+  country_dfs[[country]] <- country_data %>%
+    group_by(ref_area.label, time) %>%
+    summarise(avg_gdp_growth = mean(obs_value, na.rm = TRUE))
+}
+
+# Fetching forecast data from wide_bigmac_yearly
+for (country in selected_countries) {
+  # Add forecast data to each country's dataframe
+  price_data <- wide_bigmac_yearly %>%
+    filter(year == country_dfs[[country]]$time) %>%
+    pull(country)
+    
+  # Add the price data as a new column named "Price"
+  country_dfs[[country]] <- country_dfs[[country]] %>%
+    mutate(Price = price_data)
+}
+```
