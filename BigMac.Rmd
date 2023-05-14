@@ -423,7 +423,7 @@ for (i in seq_along(selected_countries)) {
 }
 ```
 
-Let's introduce the covariates
+Let's introduce the covariates. As discussed with the assistant, we only need 1 covariate so let's introduce the Annual GDP Growth Rate of Output per Worker.
 
 ```{r}
 # Import the data
