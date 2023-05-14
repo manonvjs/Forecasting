@@ -453,18 +453,11 @@ for (country in selected_countries) {
 # Fetching forecast data from wide_bigmac_yearly
 for (country in selected_countries) {
   # Add forecast data to each country's dataframe
-  price_data <- wide_bigmac_yearly %>%
+  country_dfs[[country]]$Price <- wide_bigmac_yearly %>%
     filter(year == country_dfs[[country]]$time) %>%
-    pull(country)
-    
-  # Add the price data as a new column named "Price"
-  country_dfs[[country]] <- country_dfs[[country]] %>%
-    mutate(Price = price_data)
+    pull(!!rlang::sym(country)) # use sym() from rlang to convert the string to a symbol
 }
-```
 
-And let's interpolate a second time the missing data
-```{r}
 # Apply interpolation to handle missing data
 for (country in selected_countries) {
   # Interpolate missing values for each column in the dataframe
@@ -480,5 +473,65 @@ for (country in selected_countries) {
     }
   }
 }
+
+# Loop over each country to fit the model and make predictions
+for (country in selected_countries) {
+  # Fit multilinear regression model
+  model <- lm(Price ~ avg_gdp_growth, data = country_dfs[[country]])
+
+  # Make predictions
+  country_dfs[[country]]$predicted_price <- predict(model, newdata = country_dfs[[country]])
+
+  # Plot actual vs predicted
+  p <- ggplot(country_dfs[[country]], aes(x = time)) +
+    geom_line(aes(y = Price), color = "blue") +
+    geom_line(aes(y = predicted_price), color = "red") +
+    labs(title = paste("Actual vs Predicted Prices for", country), x = "Year", y = "Price", 
+         color = "Legend") +
+    scale_color_manual(values = c("Actual Price" = "blue", "Predicted Price" = "red")) +
+    theme_minimal()
+  
+  print(p)
+}
+
 ```
-Perfect.
+
+```{r}
+fit_best_model <- function(df) {
+  ts_data <- ts(df$Price, start = min(df$time), frequency = 1)
+
+  # Fit different models
+  ses_model <- tryCatch(ses(ts_data)$model, error = function(e) NULL)
+  holt_model <- tryCatch(holt(ts_data)$model, error = function(e) NULL)
+  ets_model <- tryCatch(ets(ts_data)$model, error = function(e) NULL)
+  arima_model <- tryCatch(auto.arima(ts_data), error = function(e) NULL)
+
+  # Calculate AIC for each model
+  models <- list(ses_model, holt_model, ets_model, arima_model)
+  aic_values <- sapply(models, function(x) if (!is.null(x)) AIC(x) else Inf)
+
+  # Select the model with the smallest AIC
+  best_model <- models[[which.min(aic_values)]]
+
+  return(best_model)
+}
+
+
+# Initialize a list to hold best models for each country
+best_models <- list()
+
+# Fit the best model for each country
+for (country in selected_countries) {
+  best_models[[country]] <- fit_best_model(country_dfs[[country]])
+}
+
+
+# Forecast using the best models
+forecasts <- lapply(best_models, forecast, h = 5)
+
+# Plot the forecasts
+for (i in seq_along(selected_countries)) {
+  plot(forecasts[[i]], main = paste("Forecast for", selected_countries[i]), xlab = "Year", ylab = "Price")
+}
+
+```
