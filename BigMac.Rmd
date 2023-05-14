@@ -462,3 +462,23 @@ for (country in selected_countries) {
     mutate(Price = price_data)
 }
 ```
+
+And let's interpolate a second time the missing data
+```{r}
+# Apply interpolation to handle missing data
+for (country in selected_countries) {
+  # Interpolate missing values for each column in the dataframe
+  for (column in c("avg_gdp_growth", "Price")) {
+    # If all values are NA, replace them with 0
+    if (all(is.na(country_dfs[[country]][[column]]))) {
+      country_dfs[[country]][[column]] <- 0
+    } else {
+      # Interpolate missing values
+      country_dfs[[country]][[column]] <- zoo::na.approx(country_dfs[[country]][[column]], rule = 2)
+      # Fill remaining NA values (if any) with the closest non-NA value
+      country_dfs[[country]][[column]] <- zoo::na.fill(country_dfs[[country]][[column]], fill = list("extend", "extend"))
+    }
+  }
+}
+```
+Perfect.
