@@ -413,9 +413,22 @@ for (i in seq_along(selected_countries)) {
 ```
 Here, we perform a STLF (Seasonal Decomposition of Time Series + ARIMA forecasting) for our 4 countries. 
 ```{r}
+library(forecast)
+library(stats)
+
 # Fit STLF models and forecast
 stlf_models <- lapply(time_series_list, stlf)
 stlf_forecasts <- lapply(stlf_models, forecast, h = 12 )
+
+# Calculate and display AIC and BIC for each model
+aic_values <- lapply(stlf_models, function(model) AIC(model$model))
+bic_values <- lapply(stlf_models, function(model) BIC(model$model))
+
+# Print AIC and BIC values
+print(aic_values)
+print(bic_values)
+print(paste("AIC values: ", aic_values))
+print(paste("BIC values: ", bic_values))
 
 # Plot STLF forecasts
 for (i in seq_along(selected_countries)) {
