@@ -464,6 +464,240 @@ For the overall data, ARIMA is by far the best model.
 QUESTION : Should we do a stepwise regression in order to forecast too ?
 
 
+```{r}
+library(forecast)
+
+compare_modelsAIC <- function(ts_data) {
+  # Train-test split
+  train_data <- window(ts_data, end = c(2019, 12))
+  test_data <- window(ts_data, start = c(2020, 1))
+  
+  # ETS models
+  ets_zzz <- ets(train_data, model = "ZZZ")
+  ets_ana <- ets(train_data, model = "ANA")
+  
+  if (all(train_data > 0)) {
+    ets_mnm <- ets(train_data, model = "MNM")
+  }
+  
+  ets_aaa <- ets(train_data, model = "AAA")
+  
+  # ARIMA model
+  arima_model <- auto.arima(train_data, seasonal = FALSE)
+  
+  # SARIMA model
+  sarima_model <- auto.arima(train_data, seasonal=TRUE)
+  
+  # Store AIC and BIC values
+  aic_values <- c(ets_zzz = ets_zzz$aic, ets_ana = ets_ana$aic, ets_aaa = ets_aaa$aic, arima = arima_model$aic, sarima = sarima_model$aic)
+  bic_values <- c(ets_zzz = ets_zzz$bic, ets_ana = ets_ana$bic, ets_aaa = ets_aaa$bic, arima = arima_model$bic, sarima = sarima_model$bic)
+  
+  if (exists("ets_mnm")) {
+    aic_values <- c(aic_values, ets_mnm = ets_mnm$aic)
+    bic_values <- c(bic_values, ets_mnm = ets_mnm$bic)
+  }
+  
+  # Find the model with the lowest AIC and BIC values
+  best_aic_model <- names(which.min(aic_values))
+  best_bic_model <- names(which.min(bic_values))
+  
+  cat("Best model according to AIC:", best_aic_model, "\n")
+  cat("Best model according to BIC:", best_bic_model, "\n")
+  
+  return(list(AIC = aic_values, BIC = bic_values))
+}
+
+# Example usage
+compare_modelsAIC(ts_germany)
+
+
+
+```
+For Italy : 
+
+```{r}
+compare_modelsAIC(ts_italy)
+```
+
+For Austria : 
+
+```{r}
+compare_modelsAIC(ts_austria)
+```
+
+
+For France : 
+
+```{r}
+compare_modelsAIC(ts_france)
+```
+
+
+For Liechtenstein : 
+
+```{r}
+compare_modelsAIC(ts_liechtenstein)
+```
+
+
+
+For overall data  : 
+
+```{r}
+compare_modelsAIC(ts_data)
+```
+#Cross validation 
+
+```{r warning=FALSE}
+library(forecast)
+
+compare_models_cv <- function(ts_data) {
+  # ETS models
+  ets_zzz <- ets(ts_data, model = "ZZZ")
+  ets_ana <- ets(ts_data, model = "ANA")
+  
+  if (all(ts_data > 0)) {
+    ets_mnm <- ets(ts_data, model = "MNM")
+  }
+  
+  ets_aaa <- ets(ts_data, model = "AAA")
+  
+  # ARIMA model
+  arima_model <- auto.arima(ts_data, seasonal = FALSE)
+  
+  # SARIMA model
+  sarima_model <- auto.arima(ts_data, seasonal = TRUE)
+  
+  # Cross-validation errors
+  cv_errors_ets_zzz <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_zzz, use.initial.values = FALSE)
+  cv_errors_ets_ana <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_ana, use.initial.values = FALSE)
+  cv_errors_ets_aaa <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_aaa, use.initial.values = FALSE)
+  cv_errors_arima <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = arima_model, use.initial.values = FALSE)
+  cv_errors_sarima <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = sarima_model, use.initial.values = FALSE)
+  
+  if (exists("ets_mnm")) {
+    cv_errors_ets_mnm <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_mnm, use.initial.values = FALSE)
+  }
+  
+  # Calculate MAE
+  mae_ets_zzz <- mean(abs(cv_errors_ets_zzz), na.rm = TRUE)
+  mae_ets_ana <- mean(abs(cv_errors_ets_ana), na.rm = TRUE)
+  mae_ets_aaa <- mean(abs(cv_errors_ets_aaa), na.rm = TRUE)
+  mae_arima <- mean(abs(cv_errors_arima), na.rm = TRUE)
+  mae_sarima <- mean(abs(cv_errors_sarima), na.rm = TRUE)
+  
+  if (exists("cv_errors_ets_mnm")) {
+    mae_ets_mnm <- mean(abs(cv_errors_ets_mnm), na.rm = TRUE)
+  }
+  
+  # Combine MAE results
+  mae_results <- list(
+    ETS_ZZZ = mae_ets_zzz,
+    ETS_ANA = mae_ets_ana,
+    ETS_AAA = mae_ets_aaa,
+    ARIMA = mae_arima,
+    SARIMA = mae_sarima
+  )
+  
+  if (exists("mae_ets_mnm")) {
+    mae_results$ETS_MNM <- mae_ets_mnm
+  }
+  
+  # Print the MAE values
+  cat("MAE values for each model:\n")
+  print(mae_results)
+  
+  # Find the model with the lowest MAE
+  best_model_name <- names(mae_results)[which.min(unlist(mae_results))]
+  
+  # Return the best model
+  if (best_model_name == "ETS_ZZZ") {
+    return(ets_zzz)
+  } else if (best_model_name == "ETS_ANA") {
+    return(ets_ana)
+  } else if (best_model_name == "ETS_AAA") {
+    return(ets_aaa)
+  } else if (best_model_name == "ARIMA") {
+    return(arima_model)
+  } else if (best_model_name == "SARIMA") {
+    return(sarima_model)
+  } else if (exists("ets_mnm") && best_model_name == "ETS_MNM") {
+    return(ets_mnm)
+  } else {
+    return(NULL)
+  }
+}
+
+# Example usage
+best_model_germany <- compare_models_cv(ts_germany)
+print (best_model_germany)
+
+
+
+
+```
+For Italy : 
+
+```{r}
+compare_models_cv(ts_italy)
+```
+
+For Austria : 
+
+```{r}
+compare_models_cv(ts_austria)
+```
+
+
+For France : 
+
+```{r}
+compare_models_cv(ts_france)
+```
+
+
+For Liechtenstein : 
+
+```{r}
+compare_models_cv(ts_liechtenstein)
+```
+
+
+
+For overall data  : 
+
+```{r}
+compare_models_cv(ts_data)
+```
+
+```{r}
+# Generate the 12-month forecast using the best model
+forecast_result <- forecast(best_model_germany, h = 12)
+
+# Print the best model
+cat("Best model:\n")
+print(best_model_germany)
+
+# Print the 12-month forecast with upper and lower intervals
+cat("12-month forecast with intervals:\n")
+print(forecast_result)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 library(fable)
