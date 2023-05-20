@@ -99,7 +99,7 @@ plot(ts_austria, xlab = "Year", ylab = "Electricity export (GWh)", main = "Elect
 # Plot the Liechtenstein time series
 plot(ts_liechtenstein, xlab = "Year", ylab = "Electricity export (GWh)", main = "Electricity Export - Liechtenstein")
 ```
-At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italie and Lichtnestein are stationary. There is a huge drop in 2009 for the electricity export in Italie. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
+At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italy and Liechtenstein are stationary. There is a huge drop in 2009 for the electricity export in Italie. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
 
 
 
@@ -130,7 +130,7 @@ Italie : Clear seasonality with raises in Winter and drops in Summer. As for the
 
 Lichtenstein : Clear sesonality with drops every beggning of the years while raising for the Summer. The trend shows constant value until 2017 where there is a huge raise until 2020. This raise is followed by a drop until 2021 and then a small increase.
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=TRUE, include=TRUE}
 library(ggseas)
 # Function to create and display the seasonal subseries plot for a given country
 plot_seasonal_subseries <- function(data, country) {
@@ -227,6 +227,8 @@ plot_acf(ts_liechtenstein, "Liechtenstein")
 
 ## 4.0 Modeling 
 
+Lets display some of the methods in order to forecast
+
 ### ETS model 
 ```{r}
 fit_and_forecast_ets <- function(ts_data, country) {
@@ -317,7 +319,9 @@ fit_and_forecast_sarima(ts_liechtenstein, "Liechten")
 fit_and_forecast_sarima(ts_data, "Total.Export")
 ```
 ### Accuracy tests for our forecasts
-```{r}
+In this next chuck of code, we will calculate the accuracy for each model. In order to that, we split the data in two parts. First a training test composed of 80% of the data (from January 2000 to December 2019) and a testing test composed of 20% of the data (from january 2020 to )
+```{r eval=FALSE, include=FALSE}
+#A ENLEVER FINALEMENT
 # Load the forecast package
 library(forecast)
 
@@ -460,9 +464,9 @@ compare_models(ts_data)
 ```
 For the overall data, ARIMA is by far the best model. 
 
+### AIC VS BIC
 
-QUESTION : Should we do a stepwise regression in order to forecast too ?
-
+Here we are comparing all our models based on the AIC and BIC with the same training/testing set. 
 
 ```{r}
 library(forecast)
@@ -513,32 +517,35 @@ compare_modelsAIC(ts_germany)
 
 
 ```
+Samira is the best model for germany accoring to AIC and BIC
+
 For Italy : 
 
 ```{r}
 compare_modelsAIC(ts_italy)
 ```
+Samira is the best model for Italy accoring to AIC and BIC
 
 For Austria : 
 
 ```{r}
 compare_modelsAIC(ts_austria)
 ```
-
+Samira is the best model for Austria accoring to AIC and BIC
 
 For France : 
 
 ```{r}
 compare_modelsAIC(ts_france)
 ```
-
+Samira is the best model for France accoring to AIC and Arima is the best according to BIC.
 
 For Liechtenstein : 
 
 ```{r}
 compare_modelsAIC(ts_liechtenstein)
 ```
-
+Samira is the best model for Liechtenstein accoring to AIC and BIC
 
 
 For overall data  : 
@@ -546,7 +553,10 @@ For overall data  :
 ```{r}
 compare_modelsAIC(ts_data)
 ```
-#Cross validation 
+Samira is the best model for Italy accoring to AIC and BIC for our overall data. 
+
+###Cross validation 
+In the next chuck we will perform our cross validation in order to compare the MAE of each models.
 
 ```{r warning=FALSE}
 library(forecast)
@@ -636,24 +646,29 @@ print (best_model_germany)
 
 
 ```
+The cross-validation chooses an ETS with Multiplicative error, Additive Trend and Multiplicative seasonality. We can observe that the SARIMA model is not far behind with error difference of 1.2
+
 For Italy : 
 
 ```{r}
 compare_models_cv(ts_italy)
 ```
+For Italy, all the MAE are pretty much the same which can indicate that the models are all good. Our code chooses the one with Additive error, trend and seasonality
 
 For Austria : 
 
 ```{r}
 compare_models_cv(ts_austria)
 ```
-
+For Austria, the model with additive error, no trend and additive seasonality seem better than the other model. Samira is also a pretty solid model with a error difference of 2.2. 
 
 For France : 
 
 ```{r}
 compare_models_cv(ts_france)
 ```
+For France, the samira model outperforms the other models. 
+#Il faudrait traduire ce que ARIMA(2,1,1)(0,0,2) veut dire 
 
 
 For Liechtenstein : 
@@ -661,7 +676,7 @@ For Liechtenstein :
 ```{r}
 compare_models_cv(ts_liechtenstein)
 ```
-
+For Lichtenstein, Sarima/Arima are both the model that are better. Again here the difference of error between the models is pretty low. 
 
 
 For overall data  : 
@@ -669,6 +684,25 @@ For overall data  :
 ```{r}
 compare_models_cv(ts_data)
 ```
+For the overall data, the MAE is lower for the samira model which is an arima model with seasonality.
+
+
+# Conclusions
+
+## Germany
+
+## Italy
+
+## Austria
+
+## France
+
+## Lichtenstein
+
+## Overall data 
+
+
+
 
 ```{r}
 # Generate the 12-month forecast using the best model
