@@ -7,6 +7,11 @@ First of all let us import the data :
 #import data
 library(readxl)
 library(feasts)
+library(ggplot2)
+library(forecast)
+library(ggseas)
+library(tsibble)
+library(fable)
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
 ## 1 Data and Wrangling 
@@ -131,7 +136,6 @@ Italie : Clear seasonality with raises in Winter and drops in Summer. As for the
 Lichtenstein : Clear sesonality with drops every beggning of the years while raising for the Summer. The trend shows constant value until 2017 where there is a huge raise until 2020. This raise is followed by a drop until 2021 and then a small increase.
 
 ```{r eval=TRUE, include=TRUE}
-library(ggseas)
 # Function to create and display the seasonal subseries plot for a given country
 plot_seasonal_subseries <- function(data, country) {
   # Create a time series object
@@ -153,10 +157,6 @@ for (country in countries) {
 ```
 
 ```{r}
-# Load necessary libraries
-library(tsibble)
-library(feasts)
-
 # Convert the time series objects to tsibble objects
 ts_data_tsibble <- ts_data %>% as_tsibble(index = index(ts_data))
 ts_germany_tsibble <- ts_germany %>% as_tsibble(index = index(ts_germany))
@@ -200,9 +200,6 @@ print(total_export_plot)
 
 ```
 ```{r}
-# Load necessary library
-library(ggplot2)
-
 # Function to create ACF plot for a given time series
 plot_acf <- function(ts_data, country) {
   acf_data <- acf(ts_data, plot = FALSE)
@@ -269,9 +266,6 @@ Total.Export: A N A (Additive Error, No Trend, Additive Seasonal, and no Box-Cox
 ### ARIMA model 
 
 ```{r}
-# Load the forecast package
-library(forecast)
-
 # Function to fit and forecast ARIMA model
 fit_and_forecast_arima <- function(ts_data, country) {
   # Fit the ARIMA model
@@ -295,9 +289,6 @@ fit_and_forecast_arima(ts_data, "Total.Export")
 ### SARIMA (ARIMA with seasonality)
 
 ```{r}
-# Load the forecast package
-library(forecast)
-
 # Function to fit and forecast ARIMA model
 fit_and_forecast_sarima <- function(ts_data, country) {
   # Fit the ARIMA model
@@ -322,8 +313,6 @@ fit_and_forecast_sarima(ts_data, "Total.Export")
 In this next chuck of code, we will calculate the accuracy for each model. In order to that, we split the data in two parts. First a training test composed of 80% of the data (from January 2000 to December 2019) and a testing test composed of 20% of the data (from january 2020 to )
 ```{r eval=FALSE, include=FALSE}
 #A ENLEVER FINALEMENT
-# Load the forecast package
-library(forecast)
 
 # Split the data into a training and a test set
 train_data <- window(ts_germany, end = c(2019, 12))
@@ -361,9 +350,6 @@ J'ai créé une fonction pour essayer de le calculer pour tout les pays :
 
 
 ```{r}
-
-library(forecast)
-
 compare_models <- function(ts_data) {
   # Train-test split
   train_data <- window(ts_data, end = c(2019, 12))
@@ -469,8 +455,6 @@ For the overall data, ARIMA is by far the best model.
 Here we are comparing all our models based on the AIC and BIC with the same training/testing set. 
 
 ```{r}
-library(forecast)
-
 compare_modelsAIC <- function(ts_data) {
   # Train-test split
   train_data <- window(ts_data, end = c(2019, 12))
@@ -559,8 +543,6 @@ Samira is the best model for Italy accoring to AIC and BIC for our overall data.
 In the next chuck we will perform our cross validation in order to compare the MAE of each models.
 
 ```{r warning=FALSE}
-library(forecast)
-
 compare_models_cv <- function(ts_data) {
   # ETS models
   ets_zzz <- ets(ts_data, model = "ZZZ")
@@ -641,10 +623,6 @@ compare_models_cv <- function(ts_data) {
 # Example usage
 best_model_germany <- compare_models_cv(ts_germany)
 print (best_model_germany)
-
-
-
-
 ```
 The cross-validation chooses an ETS with Multiplicative error, Additive Trend and Multiplicative seasonality. We can observe that the SARIMA model is not far behind with error difference of 1.2
 
@@ -734,7 +712,6 @@ print(forecast_result)
 
 
 ```{r}
-library(fable)
 # List of country tsibbles
 country_tsibbles <- list(
   Germany = ts_germany_tsibble,
