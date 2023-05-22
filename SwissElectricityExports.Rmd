@@ -493,6 +493,53 @@ compare_modelsAIC(ts_data)
 ```
 Samira is the best model for Italy accoring to AIC and BIC for our overall data. 
 
+Here is the calculation just for Italy. 
+```{r}
+# Adjust the Italy data to start from 2009
+ts_italy <- window(ts_italy, start = c(2009, 1))
+
+# Train-test split
+ train_data <- window(ts_italy, end = c(2020, 12))
+ test_data <- window(ts_italy, start = c(2021, 1))
+
+# ETS models
+ets_zzz <- ets(train_data, model = "ZZZ")
+ets_ana <- ets(train_data, model = "ANA")
+
+if (all(train_data > 0)) {
+    ets_mnm <- ets(train_data, model = "MNM")
+}
+
+ets_aaa <- ets(train_data, model = "AAA")
+
+# ARIMA model
+arima_model <- auto.arima(train_data, seasonal = FALSE)
+
+# SARIMA model
+sarima_model <- auto.arima(train_data, seasonal=TRUE)
+
+# Store AIC and BIC values
+aic_values <- c(ets_zzz = ets_zzz$aic, ets_ana = ets_ana$aic, ets_aaa = ets_aaa$aic, arima = arima_model$aic, sarima = sarima_model$aic)
+bic_values <- c(ets_zzz = ets_zzz$bic, ets_ana = ets_ana$bic, ets_aaa = ets_aaa$bic, arima = arima_model$bic, sarima = sarima_model$bic)
+
+if (exists("ets_mnm")) {
+    aic_values <- c(aic_values, ets_mnm = ets_mnm$aic)
+    bic_values <- c(bic_values, ets_mnm = ets_mnm$bic)
+}
+
+# Find the model with the lowest AIC and BIC values
+best_aic_model <- names(which.min(aic_values))
+best_bic_model <- names(which.min(bic_values))
+
+cat("Best model according to AIC:", best_aic_model, "\n")
+cat("Best model according to BIC:", best_bic_model, "\n")
+
+print(list(AIC = aic_values, BIC = bic_values))
+
+
+
+```
+
 ###Cross validation 
 In the next chuck we will perform our cross validation in order to compare the MAE of each models.
 
