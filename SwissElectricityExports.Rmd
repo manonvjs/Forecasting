@@ -7,10 +7,19 @@ First of all let us import the data :
 #import data
 library(readxl)
 library(feasts)
+library(ggseas)
+library(tsibble)
+library(feasts)
+library(forecast)
+library(fabletools)
+library(ggplot2)
+library(fable)
+
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
 ## 1 Data and Wrangling 
-Here, we are going to do some basic modification of the raw data in order to be a bit more readable
+
+We started our project by importing the data set and doing some basic modification of the raw data in order to be a bit more readable data set. 
 ```{r}
 # Rename the columns
 colnames(Electricityraw) <- c("Date", "Germany", "France", "Austria", "Liechtenstein", "Italy", "Total.Export")
@@ -22,7 +31,7 @@ Electricity$Date <- gsub("Oktober", "October", Electricity$Date)
 Electricity$Date <- as.Date(paste0("01 ", Electricity$Date), format = "%d %B %Y")
 ```
 
-Our column are in a character form, we want to transfrom them in a numeric format since they represent continuous values. 
+The columns were in a character form, so we trandormed them in a numeric format since they represent continuous values. 
 ```{r}
 # Convert the electricity export columns to numeric
 Electricity$Germany <- as.numeric(Electricity$Germany)
@@ -33,8 +42,7 @@ Electricity$Italy <- as.numeric(Electricity$Italy)
 Electricity$Total.Export <- as.numeric(Electricity$Total.Export)
 ```
 
-
-Lets check if there are some missing values in our dataset 
+In order to control that our data set is full, we print NA values. As we have 0 NA values for all the columns, we should not have any missing values. 
 ```{r}
 # Check if there are any missing values in the dataset
 missing_values <- is.na(Electricity)
@@ -43,8 +51,6 @@ missing_values <- is.na(Electricity)
 missing_values_per_column <- colSums(missing_values)
 print(missing_values_per_column)
 ```
-So apparently, there are are no missing values in our data. 
-
 
 ## 2.0 Vizualisation 
 
@@ -75,6 +81,7 @@ plot(ts_austria, xlab = "Year", ylab = "Electricity export (GWh)", main = "Elect
 # Plot the Liechtenstein time series
 plot(ts_liechtenstein, xlab = "Year", ylab = "Electricity export (GWh)", main = "Electricity Export - Liechtenstein")
 ```
+
 At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italy and Liechtenstein are stationary. There is a huge drop in 2009 for the electricity export in Italie. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
 
 
