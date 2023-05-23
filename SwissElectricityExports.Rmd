@@ -130,8 +130,7 @@ for (country in countries) {
   plot_seasonal_subseries(Electricity, country)
 }
 ```
-To better observe seasonality, we did seasonal subseries plots. You can find the visualisation in the appendix. 
-
+To better observe seasonality, we did seasonal subseries plots. You can find the visualisation plots in the appendix. On the following graph, we examine the seasonaly of the volume of exports per country. It is interesting to see that some months have more exports than others. Basically, we see that summer is a month with a lot of exports, especially July. This is not true for Italy with some years without exportation at all. At the same time, we notice that the scale is not the same for all the countries. This increase of exports during summer could be explained by several factors as seasonal demands from countries but also tourism and weather. 
 ```{r}
 # Convert the time series objects to tsibble objects
 ts_data_tsibble <- ts_data %>% as_tsibble(index = index(ts_data))
