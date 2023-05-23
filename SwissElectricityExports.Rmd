@@ -563,14 +563,14 @@ compare_models_cv <- function(ts_data) {
   sarima_model <- auto.arima(ts_data, seasonal = TRUE)
   
   # Cross-validation errors
-  cv_errors_ets_zzz <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_zzz, use.initial.values = FALSE)
-  cv_errors_ets_ana <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_ana, use.initial.values = FALSE)
-  cv_errors_ets_aaa <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_aaa, use.initial.values = FALSE)
-  cv_errors_arima <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = arima_model, use.initial.values = FALSE)
-  cv_errors_sarima <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = sarima_model, use.initial.values = FALSE)
+  cv_errors_ets_zzz <- tsCV(ts_data, forecastfunction = forecast, h = 3, model = ets_zzz, use.initial.values = FALSE)
+  cv_errors_ets_ana <- tsCV(ts_data, forecastfunction = forecast, h = 3, model = ets_ana, use.initial.values = FALSE)
+  cv_errors_ets_aaa <- tsCV(ts_data, forecastfunction = forecast, h = 3, model = ets_aaa, use.initial.values = FALSE)
+  cv_errors_arima <- tsCV(ts_data, forecastfunction = forecast, h = 3, model = arima_model, use.initial.values = FALSE)
+  cv_errors_sarima <- tsCV(ts_data, forecastfunction = forecast, h = 3, model = sarima_model, use.initial.values = FALSE)
   
   if (exists("ets_mnm")) {
-    cv_errors_ets_mnm <- tsCV(ts_data, forecastfunction = forecast, h = 1, model = ets_mnm, use.initial.values = FALSE)
+    cv_errors_ets_mnm <- tsCV(ts_data, forecastfunction = forecast, h = 3, model = ets_mnm, use.initial.values = FALSE)
   }
   
   # Calculate MAE
@@ -622,6 +622,9 @@ compare_models_cv <- function(ts_data) {
   }
 }
 
+```
+
+```{r}
 # Example usage
 best_model_germany <- compare_models_cv(ts_germany)
 print (best_model_germany)
@@ -651,8 +654,7 @@ For France :
 ```{r}
 compare_models_cv(ts_france)
 ```
-For France, the samira model outperforms the other models. 
-#Il faudrait traduire ce que ARIMA(2,1,1)(0,0,2) veut dire 
+For France, the ETS with multiplicative Error and Seasonality seem the best close to the SARIMA model. 
 
 
 For Liechtenstein : 
@@ -660,7 +662,7 @@ For Liechtenstein :
 ```{r}
 compare_models_cv(ts_liechtenstein)
 ```
-For Lichtenstein, Sarima/Arima are both the model that are better. Again here the difference of error between the models is pretty low. 
+For Lichtenstein, ARIMA(0,1,2) and SARIMA looks the best according to the Cross-Validation
 
 
 For overall data  : 
@@ -668,13 +670,25 @@ For overall data  :
 ```{r}
 compare_models_cv(ts_data)
 ```
-For the overall data, the MAE is lower for the samira model which is an arima model with seasonality.
+For the overall data, the MAE is lower for the SARIMA model. For the non-seasonal part, the AR is equal to 1, the order of differencing to 0 and the MA to 1. For the seaonal part, the AR is equal to 2, the seasonal autoregressive term to 0 and the seasonal MA is equal to 0.  
 
 
 # Conclusions
 
 ## Germany
 
+```{r}
+# First fit the SARIMA model to the German data
+sarima_model_germany <- auto.arima(ts_germany, seasonal = TRUE)
+
+# Generate a 12 month forecast
+forecast_sarima <- forecast(sarima_model_germany, h = 13)
+
+# Print the forecast
+print(forecast_sarima)
+print (sarima_model_germany)
+
+```
 ## Italy
 
 ## Austria
@@ -702,83 +716,3 @@ print(forecast_result)
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-library(fable)
-# List of country tsibbles
-country_tsibbles <- list(
-  Germany = ts_germany_tsibble,
-  Italy = ts_italy_tsibble,
-  Austria = ts_austria_tsibble,
-  France = ts_france_tsibble,
-  Liechtenstein = ts_liechtenstein_tsibble
-)
-
-# Function to create ensemble forecasts for each country
-ensemble_forecasts <- function(ts_country_tsibble) {
-  
-  # Check if any value is non-positive and replace it with a small positive value
-  if (any(ts_country_tsibble$value <= 0)) {
-    ts_country_tsibble$value <- pmax(ts_country_tsibble$value, 1e-9)
-  }
-  
-  # Create STLF model using STL decomposition and ETS for seasonally adjusted data
-  STLF <- decomposition_model(
-    STL(log(value) ~ season(window = Inf)),
-    ETS(season_adjust ~ season("N"))
-  )
-  
-  # Fit the models and create ensemble using dplyr and fable
-  country_models <- ts_country_tsibble %>%
-    model(
-      ets = ETS(value),
-      stlf = STLF,
-      arima = ARIMA(log(value))
-    ) %>%
-    mutate(combination = (ets + stlf + arima) / 3) %>%
-    # Handle any errors during the model fitting process
-    tryCatch(
-      error = function(e) {
-        warning("Error encountered during model fitting: ", conditionMessage(e))
-        return(NULL)
-      }
-    )
-  
-  if (is.null(country_models)) {
-    return(NULL)
-  }
-  
-  # Forecast for 5 years (60 months)
-  country_forecast <- country_models %>%
-    forecast(h = 60) %>%
-    # Handle any errors during the forecasting process
-    tryCatch(
-      error = function(e) {
-        warning("Error encountered during forecasting: ", conditionMessage(e))
-        return(NULL)
-      }
-    )
-  
-  return(country_forecast)
-}
-
-# Apply the function to all country tsibbles
-forecast_results <- lapply(country_tsibbles, ensemble_forecasts)
-
-# Example usage: Access forecasts for Germany
-forecast_results$Germany
-```
