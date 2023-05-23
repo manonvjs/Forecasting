@@ -81,9 +81,7 @@ plot(ts_austria, xlab = "Year", ylab = "Electricity export (GWh)", main = "Elect
 # Plot the Liechtenstein time series
 plot(ts_liechtenstein, xlab = "Year", ylab = "Electricity export (GWh)", main = "Electricity Export - Liechtenstein")
 ```
-
-At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italy and Liechtenstein are stationary. There is a huge drop in 2009 for the electricity export in Italie. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
-
+We did some time series for each country to have a global view on the exports. You can find these time series plot in the appendix. At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italy and Liechtenstein are stationary. There is a huge drop in 2009 for the electricity export in Italy. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
 
 
 ### 2.1 STL Decomposition 
@@ -109,12 +107,10 @@ for (country in countries) {
 }
 
 ```
-Italie : Clear seasonality with raises in Winter and drops in Summer. As for the trend, from 2000 to 2008, we observe a small incrase followed by huge drop until 2010. Since 2010, the trend is constant. 
-
-Lichtenstein : Clear sesonality with drops every beggning of the years while raising for the Summer. The trend shows constant value until 2017 where there is a huge raise until 2020. This raise is followed by a drop until 2021 and then a small increase.
+Based on the time series results, we plotted a STL decomposition to see if there is some seasonality or not. For Italy, we observe a clear seasonality with raises in Winter and drops in Summer. As for the trend, from 2000 to 2008, we observe a small increase followed by huge drop until 2010. Since 2010, the trend is constant. For Lichtenstein, we identify seasonality with drops every beginning of the years while raising for the Summer. The trend shows constant value until 2017 where there is a huge raise until 2020. This raise is followed by a drop until 2021 and then a small increase.
+We find out remainders for some countries. It is especially the case for Germany, France and Austria. The remainders could be random noises or it could be explained by irregular effects, model misspecification that does not capture the patterns or nonlinear relationship. 
 
 ```{r eval=TRUE, include=TRUE}
-library(ggseas)
 # Function to create and display the seasonal subseries plot for a given country
 plot_seasonal_subseries <- function(data, country) {
   # Create a time series object
@@ -134,12 +130,9 @@ for (country in countries) {
   plot_seasonal_subseries(Electricity, country)
 }
 ```
+To better observe seasonality, we did seasonal subseries plots. You can find the visualisation in the appendix. 
 
 ```{r}
-# Load necessary libraries
-library(tsibble)
-library(feasts)
-
 # Convert the time series objects to tsibble objects
 ts_data_tsibble <- ts_data %>% as_tsibble(index = index(ts_data))
 ts_germany_tsibble <- ts_germany %>% as_tsibble(index = index(ts_germany))
