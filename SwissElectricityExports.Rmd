@@ -1,9 +1,15 @@
 ---
-title: "Swiss electricty exports"
-output: html_notebook
+author: "Group 1: Samy Maurer, Alexander Liden, Tiffany Davies, Manon Verjus"
+date: "23/05/2023"
+title: "Swiss electricty exports forecasts"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
 ---
 First of all let us import the data : 
-```{r}
+```{r, warning=FALSE}
 #import data
 library(readxl)
 library(feasts)
@@ -14,6 +20,7 @@ library(forecast)
 library(fabletools)
 library(ggplot2)
 library(fable)
+library(patchwork)
 
 Electricityraw <- read_excel("Electricity export Switzerland-3.xlsx")
 ```
@@ -89,8 +96,8 @@ plot(ts_liechtenstein, xlab = "Year", ylab = "Electricity export (GWh)", main = 
 
 We did some time series for each country to have a global view on the exports. You can find these time series plot in the appendix. At first glance, we can guess that there is seasonality for each country. If we focus ourselves on stationary of the data, we can easily say that Italy and Liechtenstein are stationary. There is a huge drop in 2009 for the electricity export in Italy. For the Lichtenstein, we observe a a low increase from 2017 to 2020 followed by a small drop. 
 
-
 ## STL Decomposition 
+
 ```{r}
 # Define the countries vector
 countries <- c("Germany", "France", "Austria", "Liechtenstein", "Italy", "Total.Export")
@@ -116,27 +123,6 @@ for (country in countries) {
 
 Based on the time series results, we plotted a STL decomposition to see if there is some seasonality or not. For Italy, we observe a clear seasonality with raises in Winter and drops in Summer. As for the trend, from 2000 to 2008, we observe a small increase followed by huge drop until 2010. Since 2010, the trend is constant. For Lichtenstein, we identify seasonality with drops every beginning of the years while raising for the Summer. The trend shows constant value until 2017 where there is a huge raise until 2020. This raise is followed by a drop until 2021 and then a small increase.
 We find out remainders for some countries. It is especially the case for Germany, France and Austria. The remainders could be random noises or it could be explained by irregular effects, model misspecification that does not capture the patterns or nonlinear relationship. 
-
-```{r eval=TRUE, include=TRUE}
-# Function to create and display the seasonal subseries plot for a given country
-plot_seasonal_subseries <- function(data, country) {
-  # Create a time series object
-  country_ts <- ts(data[[country]], start = c(2000, 1), frequency = 12)
-  
-  # Create a seasonal subseries plot
-  seasonal_subseries_plot <- ggseasonplot(country_ts, year.labels = TRUE, year.labels.left = TRUE,
-                                          main = paste("Seasonal Subseries Plot for", country),
-                                          xlab = "Month", ylab = "Electricity Export (GWh)")
-
-  # Display the plot
-  print(seasonal_subseries_plot)
-}
-
-# Use the function to create and display seasonal subseries plots for each country
-for (country in countries) {
-  plot_seasonal_subseries(Electricity, country)
-}
-```
 
 To better observe seasonality, we did seasonal subseries plots. You can find the visualisation plots in the appendix. On the following graph, we examine the seasonaly of the volume of exports per country. It is interesting to see that some months have more exports than others. Basically, we see that summer is a month with a lot of exports, especially July. This is not true for Italy with some years without exportation at all. At the same time, we notice that the scale is not the same for all the countries. This increase of exports during summer could be explained by several factors as seasonal demands from countries but also tourism and weather. 
 
@@ -183,34 +169,12 @@ print(italy_plot)
 print(total_export_plot)
 ```
 
-```{r}
-# Load necessary library
-library(ggplot2)
-
-# Function to create ACF plot for a given time series
-plot_acf <- function(ts_data, country) {
-  acf_data <- acf(ts_data, plot = FALSE)
-  acf_df <- data.frame(Lag = 1:length(acf_data$acf), ACF = acf_data$acf)
-  ggplot(acf_df, aes(x = Lag, y = ACF)) + geom_bar(stat = "identity") +
-    ggtitle(paste("ACF plot for", country)) +
-    xlab("Lag") + ylab("Autocorrelation") +
-    theme_minimal()
-}
-
-# Create and display ACF plots for each country
-plot_acf(ts_data, "Total.Export")
-plot_acf(ts_germany, "Germany")
-plot_acf(ts_france, "France")
-plot_acf(ts_italy, "Italy")
-plot_acf(ts_austria, "Austria")
-plot_acf(ts_liechtenstein, "Liechtenstein")
-```
-
 # Modeling 
 
 Lets display some of the methods in order to forecast
 
 ## ETS model 
+
 ```{r}
 fit_and_forecast_ets <- function(ts_data, country) {
   # Fit the ETS model with ZZZ (chooses automatically the best)
@@ -226,13 +190,8 @@ fit_and_forecast_ets <- function(ts_data, country) {
   plot(ets_forecast, main = paste("ETS Forecast for", country))
 }
 
-fit_and_forecast_ets(ts_germany, "Germany")
-fit_and_forecast_ets(ts_france, "France")
-fit_and_forecast_ets(ts_italy, "Italy")
-fit_and_forecast_ets(ts_austria, "Austria")
-fit_and_forecast_ets(ts_liechtenstein, "Liechtenstein")
-fit_and_forecast_ets(ts_data, "Total.Export")
 ```
+Please look at the appendix for the graphs.
 
 So here is what R chooses automatically for us : 
 
@@ -261,16 +220,10 @@ fit_and_forecast_arima <- function(ts_data, country) {
   plot(arima_forecast, main = paste("ARIMA Forecast for", country))
 }
 
-# Apply the function to your time series data for each country
-fit_and_forecast_arima(ts_germany, "Germany")
-fit_and_forecast_arima(ts_france, "France")
-fit_and_forecast_arima(ts_italy, "Italy")
-fit_and_forecast_arima(ts_austria, "Austria")
-fit_and_forecast_arima(ts_liechtenstein, "Liechten")
-fit_and_forecast_arima(ts_data, "Total.Export")
 ```
+Please look at the appendix for the graphs.
 
-### SARIMA (ARIMA with seasonality)
+## SARIMA (ARIMA with seasonality)
 
 ```{r}
 # Load the forecast package
@@ -279,7 +232,7 @@ library(forecast)
 # Function to fit and forecast ARIMA model
 fit_and_forecast_sarima <- function(ts_data, country) {
   # Fit the ARIMA model
-  sarima_model <- auto.arima(ts_data, seasonal = TRUE)
+  sarima_model <- auto.arima(ts_data, seasonal = TRUE, D = 1) #D=1 forces the seasonality
   
   # Generate a forecast
   sarima_forecast <- forecast(sarima_model, h = 12) # Forecast 12 months ahead
@@ -288,15 +241,10 @@ fit_and_forecast_sarima <- function(ts_data, country) {
   plot(sarima_forecast, main = paste("SARIMA Forecast for", country))
 }
 
-# Apply the function to your time series data for each country
-fit_and_forecast_sarima(ts_germany, "Germany")
-fit_and_forecast_sarima(ts_france, "France")
-fit_and_forecast_sarima(ts_italy, "Italy")
-fit_and_forecast_sarima(ts_austria, "Austria")
-fit_and_forecast_sarima(ts_liechtenstein, "Liechten")
-fit_and_forecast_sarima(ts_data, "Total.Export")
 ```
+Please look at the appendix for the graphs.
 
+We forced the differentiation by passing `D=1` as an option. This way, forecasts such as the one from the Liechtenstein won't be a straight line. See the Stackoverflow discussion: https://stats.stackexchange.com/questions/286900/arima-forecast-straight-line
 
 ## AIC VS BIC
 
@@ -324,7 +272,7 @@ compare_modelsAIC <- function(ts_data) {
   arima_model <- auto.arima(train_data, seasonal = FALSE)
   
   # SARIMA model
-  sarima_model <- auto.arima(train_data, seasonal=TRUE)
+  sarima_model <- auto.arima(train_data, seasonal=TRUE, D=1)
   
   # Store AIC and BIC values
   aic_values <- c(ets_zzz = ets_zzz$aic, ets_ana = ets_ana$aic, ets_aaa = ets_aaa$aic, arima = arima_model$aic, sarima = sarima_model$aic)
@@ -344,8 +292,11 @@ compare_modelsAIC <- function(ts_data) {
   
   return(list(AIC = aic_values, BIC = bic_values))
 }
+```
 
-# Example usage
+For Germany:
+
+```{r}
 compare_modelsAIC(ts_germany)
 ```
 
@@ -457,7 +408,7 @@ compare_models_cv <- function(ts_data) {
   arima_model <- auto.arima(ts_data, seasonal = FALSE)
   
   # SARIMA model
-  sarima_model <- auto.arima(ts_data, seasonal = TRUE)
+  sarima_model <- auto.arima(ts_data, seasonal = TRUE, D=1)
   
   # Cross-validation errors
   cv_errors_ets_zzz <- tsCV(ts_data, forecastfunction = forecast, h = 3, model = ets_zzz, use.initial.values = FALSE)
@@ -520,13 +471,14 @@ compare_models_cv <- function(ts_data) {
 }
 ```
 
+For Germany:
+
 ```{r}
-# Example usage
 best_model_germany <- compare_models_cv(ts_germany)
 print(best_model_germany)
 ```
 
-The cross-validation chooses an ETS with Multiplicative error, Additive Trend and Multiplicative seasonality. We can observe that the SARIMA model is not far behind with error difference of 1.2.
+The cross-validation chooses a `SARIMA.` We can observe that the closest ETS model is an MNM, which is only 5 points higher.
 
 For Italy : 
 
@@ -534,7 +486,7 @@ For Italy :
 compare_models_cv(ts_italy)
 ```
 
-For Italy, all the MAE are pretty much the same which can indicate that the models are all good. Our code chooses the one with Additive error, trend and seasonality
+For Italy, all the MAE are pretty much the same which can indicate that the models are all good. Our code chooses the ETS model with Additive error and seasonality.
 
 For Austria : 
 
@@ -542,7 +494,7 @@ For Austria :
 compare_models_cv(ts_austria)
 ```
 
-For Austria, the model with additive error, no trend and additive seasonality seem better than the other model. SARIMA is also a pretty solid model with a error difference of 2.2. 
+For Austria, SARIMA model seems better than the other model. ETS(A,N,A) is a strong contender, with only 3 points above.
 
 For France : 
 
@@ -550,7 +502,7 @@ For France :
 compare_models_cv(ts_france)
 ```
 
-For France, the ETS with multiplicative Error and Seasonality seem the best close to the SARIMA model. 
+For France, the ETS with multiplicative Error and Seasonality seem the best close to the SARIMA model. The difference between the two is really small though.
 
 
 For Liechtenstein : 
@@ -559,7 +511,7 @@ For Liechtenstein :
 compare_models_cv(ts_liechtenstein)
 ```
 
-For Lichtenstein, ARIMA(0,1,2) and SARIMA looks the best according to the Cross-Validation
+For Lichtenstein, the ARIMA and SARIMA look the best according to the Cross-Validation. They have the same value, indicating the absence of seasonality (or at least the non-significance of it).
 
 
 For overall data  : 
@@ -570,7 +522,7 @@ compare_models_cv(ts_data)
 
 For the overall data, the MAE is lower for the SARIMA model. For the non-seasonal part, the AR is equal to 1, the order of differencing to 0 and the MA to 1. For the seasonal part, the AR is equal to 2, the seasonal auto regressive term to 0 and the seasonal MA is equal to 0.  
 
-# Conclusions
+# Conclusion
 
 After many discussions with the professor and the assistants from the course, we decided to use the method of `AIC` to choose our models, instead of using methods comparing the errors such as the `MAE`. You will find that most models (if not all) resulted in the same way. This might be explained because of over fitting, but we cannot be certain.
 
@@ -580,19 +532,18 @@ With the AIC computed before, we can conclude that the best model came the SARIM
 
 ```{r}
 # First fit the SARIMA model to the data
-sarima_model_germany <- auto.arima(ts_germany, seasonal = TRUE)
+sarima_model_germany <- auto.arima(ts_germany, seasonal = TRUE, D=1)
 
 # Generate a 12 month forecast
 forecast_sarima <- forecast(sarima_model_germany, h = 13)
 
 # Print the forecast
 print(forecast_sarima)
-print(sarima_model_germany)
 ```
 
 ## Italy
 
-Same as in Germany, we will choose the model computed by the test / training sets instead of cross validation. Indeed, we got a `SARIMA` with an AIC of `790` instead of the `1271` from the `ETS(A,N,A)` we got in the cross-validation.
+Same as in Germany, we will choose the model computed by the test / training sets instead of cross validation. Indeed, we got a `SARIMA` with an AIC of `734` instead of the `1271` from the `ETS(A,N,A)` we got in the cross-validation.
 Here the difference is quite significant and may be explained because we only used the data after 2015, which imitates greatly the behavior we have today.
 
 ```{r}
@@ -604,23 +555,23 @@ forecast_sarima <- forecast(sarima_model_italy, h = 13)
 
 # Print the forecast
 print(forecast_sarima)
-print(sarima_model_italy)
 ```
+We wanted to force seasonality but as the point forecasts came in the negative, we could not let it as-is.
+Also, the ETS(A,N,A) was supposed to be the best in the Cross-validation, but same conclusion because some of its point values were negative.
 
 ## Austria
 
-As you might have guessed, the model we got from the test/train split was the best, and we chose the `SARIMA` with an AIC of `3957` instead of the `ETS(A,N,A)` we got from the cross-validation (we got an AIC of `4708` here).
+As you might have guessed, the model we got from the test/train split was the best, and we chose the `SARIMA` with an AIC of `3226` instead of the `ETS(A,N,A)` we got from the cross-validation (we got an AIC of `3740` there).
 
 ```{r}
 # First fit the SARIMA model to the data
-sarima_model_austria <- auto.arima(ts_austria, seasonal = TRUE)
+sarima_model_austria <- auto.arima(ts_austria, seasonal = TRUE, D=1)
 
 # Generate a 12 month forecast
 forecast_sarima <- forecast(sarima_model_austria, h = 13)
 
 # Print the forecast
 print(forecast_sarima)
-print(sarima_model_austria)
 ```
 
 ## France
@@ -629,30 +580,28 @@ Here the AIC of the `SARIMA` model was `3006`, and the one we got from the cross
 
 ```{r}
 # First fit the SARIMA model to the data
-sarima_model_france <- auto.arima(ts_france, seasonal = TRUE)
+sarima_model_france <- auto.arima(ts_france, seasonal = TRUE, D=1)
 
 # Generate a 12 month forecast
 forecast_sarima <- forecast(sarima_model_france, h = 13)
 
 # Print the forecast
 print(forecast_sarima)
-print(sarima_model_france)
 ```
 
 ## Liechtenstein
 
-For Liechtenstein, we got the same output here and we chose the `SARIMA` model from the test/train split with an AIC of `2327`. The model we got from the 3-fold cross-validation was `ARIMA(0,1,2)` with an AIC of `2770`.
+For Liechtenstein, we got the same output here and we chose the `SARIMA` model from the test/train split with an AIC of `2339`. The model we got from the 3-fold cross-validation was `ARIMA(0,1,2)` with an AIC of `2770`.
 
 ```{r}
 # First fit the SARIMA model to the data
-sarima_model_liechenstein <- auto.arima(ts_liechtenstein, seasonal = TRUE)
+sarima_model_liechenstein <- auto.arima(ts_liechtenstein, seasonal = TRUE, D=1)
 
 # Generate a 12 month forecast
 forecast_sarima <- forecast(sarima_model_liechenstein, h = 13)
 
 # Print the forecast
 print(forecast_sarima)
-print(sarima_model_lichenstein)
 ```
 
 ## Overall data 
@@ -661,7 +610,7 @@ Finally, as you might have guessed, we found that the best model here was SARIMA
 
 ```{r}
 # First fit the SARIMA model to the data
-sarima_model_data <- auto.arima(ts_data, seasonal = TRUE)
+sarima_model_data <- auto.arima(ts_data, seasonal = TRUE, D=1)
 
 # Generate a 12 month forecast
 forecast_sarima <- forecast(sarima_model_data, h = 13)
@@ -672,14 +621,44 @@ print(forecast_sarima)
 
 # Appendix
 
+## ETS PLOTS
+```{r}
+fit_and_forecast_ets(ts_germany, "Germany")
+fit_and_forecast_ets(ts_france, "France")
+fit_and_forecast_ets(ts_italy, "Italy")
+fit_and_forecast_ets(ts_austria, "Austria")
+fit_and_forecast_ets(ts_liechtenstein, "Liechtenstein")
+fit_and_forecast_ets(ts_data, "Total.Export")
+
+```
+## ARIMA PLOTS
+
+```{r}
+fit_and_forecast_arima(ts_germany, "Germany")
+fit_and_forecast_arima(ts_france, "France")
+fit_and_forecast_arima(ts_italy, "Italy")
+fit_and_forecast_arima(ts_austria, "Austria")
+fit_and_forecast_arima(ts_liechtenstein, "Liechten")
+fit_and_forecast_arima(ts_data, "Total.Export")
+```
+
+
+## SARIMA PLOTS
+
+```{r}
+fit_and_forecast_sarima(ts_germany, "Germany")
+fit_and_forecast_sarima(ts_france, "France")
+fit_and_forecast_sarima(ts_italy, "Italy") 
+fit_and_forecast_sarima(ts_austria, "Austria")
+fit_and_forecast_sarima(ts_liechtenstein, "Liechten")
+fit_and_forecast_sarima(ts_data, "Total.Export")
+```
+
 ## Accuracy tests for our forecasts
 
 In this next chuck of code, we will calculate the accuracy for each model. In order to that, we split the data in two parts. First a training test composed of 80% of the data (from January 2000 to December 2019) and a testing test composed of 20% of the data (from january 2020)
 
 ```{r}
-
-library(forecast)
-
 compare_models <- function(ts_data) {
   # Train-test split
   train_data <- window(ts_data, end = c(2019, 12))
@@ -784,3 +763,42 @@ compare_models(ts_data)
 ```
 For the overall data, ARIMA is by far the best model. 
 
+## ACF
+
+```{r}
+plot_acf <- function(ts_data, country) {
+  acf_data <- acf(ts_data, plot = FALSE)
+  acf_df <- data.frame(Lag = 1:length(acf_data$acf), ACF = acf_data$acf)
+  ggplot(acf_df, aes(x = Lag, y = ACF)) + geom_bar(stat = "identity") +
+    ggtitle(paste("ACF plot for", country)) +
+    xlab("Lag") + ylab("Autocorrelation") +
+    theme_minimal()
+}
+
+plot_acf(ts_data, "Total.Export")
+plot_acf(ts_germany, "Germany")
+plot_acf(ts_france, "France")
+plot_acf(ts_italy, "Italy")
+plot_acf(ts_austria, "Austria")
+plot_acf(ts_liechtenstein, "Liechtenstein")
+```
+
+```{r eval=TRUE, include=TRUE}
+
+plot_seasonal_subseries <- function(data, country) {
+  # Create a time series object
+  country_ts <- ts(data[[country]], start = c(2000, 1), frequency = 12)
+  
+  # Create a seasonal subseries plot
+  seasonal_subseries_plot <- ggseasonplot(country_ts, year.labels = TRUE, year.labels.left = TRUE,
+                                          main = paste("Seasonal Subseries Plot for", country),
+                                          xlab = "Month", ylab = "Electricity Export (GWh)")
+
+  # Display the plot
+  print(seasonal_subseries_plot)
+}
+
+for (country in countries) {
+  plot_seasonal_subseries(Electricity, country)
+}
+```
