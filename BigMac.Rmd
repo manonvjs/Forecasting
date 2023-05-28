@@ -231,6 +231,7 @@ print(corr_by_country)
 ```{r}
 # Filter data for the specified countries
 selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
+
 bigmac_filtered <- bigmac %>%
   filter(country %in% selected_countries)
 bigmac_grouped2 <- bigmac_filtered %>%
@@ -332,7 +333,7 @@ wide_bigmac_yearly <- wide_bigmac %>%
 #})
 
 #This works but wrong dates
-time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = c(year(min(wide_bigmac$date))), frequency = 1)
+time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date))), frequency = 1)
 ```
 
 We are vizualizing our time series for the 4 countries : 
@@ -352,7 +353,11 @@ We observe that Taiwan has many missing values so we will do an interpolation to
 ```{r}
 #Here we do an interpolation in order to fill the NA's
 time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
+```
 
+```{r}
+selected_countries <- c("Taiwan", "Venezuela", "Brazil", "Switzerland")
+#Fix dégueulasse pour montrer les bonnes times series et les bons pays
 ```
 
 First of all lets perform easy models. Here we will start with a Simple Exponential Smoothing since we have no seasonality and no clear trend in our data. 
@@ -389,7 +394,7 @@ We are now performing a Holt's Linear model with only trend but no seasonality.
 holt_models <- lapply(time_series_list, holt)
 
 # Forecast using Holt's Linear Trend models
-holt_forecasts <- lapply(holt_models, forecast, h = 10)
+holt_forecasts <- lapply(holt_models, forecast, h = 5)
 
 # Plot forecasts
 for (i in seq_along(selected_countries)) {
@@ -409,11 +414,12 @@ for (i in seq_along(selected_countries)) {
 ```
 We are here perfroming a STL decomposition. Since we have NA's values in our Taiwan dataset, we are currently doing an interpolation for the missing values then we perform our model. 
 ```{r}
-stl_models <- lapply(time_series_list, stl, s.window = "periodic")
+#stl_models <- lapply(time_series_list, stl, s.window = 101)
 
-for (i in seq_along(selected_countries)) {
-  plot(stl_models[[i]], main = paste("STL Decomposition for", selected_countries[i]))
-}
+#for (i in seq_along(selected_countries)) {
+#  plot(stl_models[[i]], main = paste("STL Decomposition for", #selected_countries[i]))}
+
+##NOT POSSIBLE BECAUSE NOT PERIODIC
 ```
 Now we are perfomring an ARIMA model for our 4 countries : 
 ```{r}
@@ -426,29 +432,57 @@ for (i in seq_along(selected_countries)) {
   plot(arima_forecasts[[i]], main = paste("ARIMA Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
 }
 ```
-Here, we perform a STLF (Seasonal Decomposition of Time Series + ARIMA forecasting) for our 4 countries. 
+Let's choose the best model:
+
 ```{r}
 library(forecast)
 library(stats)
 
-# Fit STLF models and forecast
-stlf_models <- lapply(time_series_list, stlf)
-stlf_forecasts <- lapply(stlf_models, forecast, h = 12 )
+# Function to calculate AIC and BIC
+calc_AIC <- function(model) {
+  list(AIC = AIC(model))
+}
 
 # Calculate and display AIC and BIC for each model
-aic_values <- lapply(stlf_models, function(model) AIC(model$model))
-bic_values <- lapply(stlf_models, function(model) BIC(model$model))
+arima_aic <- lapply(arima_models, calc_AIC)
+ets_aic <- lapply(ets_models, calc_AIC)
 
-# Print AIC and BIC values
-print(aic_values)
-print(bic_values)
-print(paste("AIC values: ", aic_values))
-print(paste("BIC values: ", bic_values))
+# Store results in a data frame for comparison
+results <- data.frame(
+  Country = selected_countries,
+  ARIMA_AIC = sapply(arima_aic, `[[`, "AIC"),
+  ETS_AIC = sapply(ets_aic, `[[`, "AIC")
+)
 
-# Plot STLF forecasts
+# Find the model with minimum AIC and BIC for each country
+results$Min_AIC_Model <- apply(results[,c("ARIMA_AIC", "ETS_AIC")], 1, which.min)
+
+# Print results
+print(results)
+
+# Find the model with overall minimum AIC and BIC
+best_AIC_model <- which.min(c(ARIMA_AIC = mean(sapply(arima_aic, `[[`, "AIC")),
+                              ETS_AIC = mean(sapply(ets_aic, `[[`, "AIC"))))
+
+# Print the model with the lowest AIC
+print(paste("Model with minimum AIC: ", names(best_AIC_model), ", AIC: ", best_AIC_model))
+
+
+# Choose the best models based on AIC and BIC
+best_models_AIC <- switch(names(best_AIC_model),
+                      ARIMA_AIC = arima_models,
+                      ETS_AIC = ets_models)
+
+
+# Forecast using best models
+best_forecasts_AIC <- lapply(best_models_AIC, forecast, h = 5)
+
+# Plot forecasts from the best models
 for (i in seq_along(selected_countries)) {
-  plot(stlf_forecasts[[i]], main = paste("STLF Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
+  plot(best_forecasts_AIC[[i]], main = paste("Forecast for", selected_countries[i], "using best AIC model"), xlab = "Year", ylab = "Dollar Price")
 }
+
+
 ```
 
 Let's introduce the covariates. As discussed with the assistant, we only need 1 covariate so let's introduce the Annual GDP Growth Rate of Output per Worker.
@@ -484,7 +518,7 @@ for (country in selected_countries) {
 
 for (i in seq_along(selected_countries)) {
   # Capitalize the 'year' column in the dataframe
-  names(country_dfs[[selected_countries[i]]])[names(country_dfs[[selected_countries[i]]]) == "year"] <- "Year"
+  names(country_dfs[[selected_countries[i]]])[names(country_dfs[[selected_countries[i]]]) == "year"] <- "Year" #a mettre en comm pour refaire tout tourner
   
   time_series_df <- data.frame(
     Year = floor(time(time_series_list[[i]])), # Get the year part of the time series index
@@ -498,7 +532,7 @@ for (i in seq_along(selected_countries)) {
   merged_df$GDP_growth[is.na(merged_df$GDP_growth)] <- 0 # Or use any other imputation method
   
   # Replace the time series with the merged dataframe
-  time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 12)
+  time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 1)
   
   # Replace the GDP growth rate with the merged dataframe
   country_dfs[[selected_countries[i]]] <- merged_df$GDP_growth
@@ -507,28 +541,37 @@ for (i in seq_along(selected_countries)) {
 ```
 
 ```{r}
-# Redefine the models with the new time series
+# Calculate AIC for best model without covariates
+best_model_aic <- switch(names(best_AIC_model),
+                         ARIMA_AIC = arima_aic,
+                         ETS_AIC = ets_aic)
+
+# Define the models with the new time series and covariates
 arima_models_cov <- mapply(function(ts, covariate) {
   auto.arima(ts, xreg = as.matrix(covariate))
 }, ts = time_series_list, covariate = country_dfs, SIMPLIFY = FALSE)
 
-# Get the AIC for the models with the covariates
+# Calculate AIC for the models with covariates
 aic_values_cov <- lapply(arima_models_cov, AIC)
+
+# Prepare the AIC values for comparison
+aic_without_cov <- sapply(best_model_aic, `[[`, "AIC")
 
 # Compare the AIC values for the models with and without the covariates
 aic_comparison <- data.frame(
   Country = selected_countries,
-  AIC_Without_Covariates = unlist(aic_values),
+  AIC_Without_Covariates = unlist(aic_without_cov),
   AIC_With_Covariates = unlist(aic_values_cov)
 )
 
 # Print the AIC comparison
 print(aic_comparison)
 
+
 ```
 
 ```{r}
-# Plot the actual vs predicted prices for the test / training set
+# Plot the actual vs predicted prices
 for (i in seq_along(selected_countries)) {
   fitted_values <- fitted(arima_models_cov[[i]])
   actual_values <- time_series_list[[i]]
