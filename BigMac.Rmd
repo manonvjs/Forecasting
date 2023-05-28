@@ -304,6 +304,7 @@ library(tidyr)
 library(forecast)
 library(ggplot2)
 library(zoo)
+library(xts)
 # Filter the data for the 4 selected countries
 filtered_bigmac <- bigmac %>%
   filter(country %in% selected_countries)
@@ -318,13 +319,20 @@ wide_bigmac_yearly <- wide_bigmac %>%
   group_by(year) %>%
   summarise(across(starts_with(selected_countries), mean, na.rm = TRUE))
 
+
 # Create a time series object for each country
 # time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = min(wide_bigmac_yearly$year), frequency = 1)
 # time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date))), frequency = 12)
-time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date))), frequency = 12)
 
-#Here we do an interpolation in order to fill the NA's
-time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
+#time_series_list <- lapply(wide_bigmac[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date)), frequency = 12))
+
+# Create a list of zoo objects, works but 
+#time_series_list <- lapply(wide_bigmac[-1], function(x) {
+#  zoo(x, order.by = wide_bigmac$date)
+#})
+
+#This works but wrong dates
+time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = c(year(min(wide_bigmac$date))), frequency = 1)
 ```
 
 We are vizualizing our time series for the 4 countries : 
@@ -341,6 +349,11 @@ for (i in seq_along(selected_countries)) {
 ```
 We observe that Taiwan has many missing values so we will do an interpolation to counter that. 
 
+```{r}
+#Here we do an interpolation in order to fill the NA's
+time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
+
+```
 
 First of all lets perform easy models. Here we will start with a Simple Exponential Smoothing since we have no seasonality and no clear trend in our data. 
 
