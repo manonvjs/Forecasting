@@ -485,10 +485,9 @@ for (i in seq_along(selected_countries)) {
 
 ```
 
-Let's introduce the covariates. As discussed with the assistant, we only need 1 covariate so let's introduce the Annual GDP Growth Rate of Output per Worker.
+Let's introduce the covariates. As discussed with the assistant, we only need 1 covariate so let's introduce the Annual  Growth Rate of Output per Worker.
 
 ```{r}
-
 # Import the data
 gdpgrowth <- read_csv("gdpgrowth.csv")
 gdpgrowth$ref_area.label[gdpgrowth$ref_area.label == "Taiwan, China"] <- "Taiwan"
@@ -512,6 +511,24 @@ for (country in selected_countries) {
   country_dfs[[country]] <- country_df
 }
 ```
+
+```{r}
+# GDP Growth EDA 
+
+# Filter out the unnecessary columns
+filtered_gdpgrowth2 <- select(filtered_gdpgrowth, -c(indicator.label, source.label))
+
+# Create the line plot
+ggplot(data = filtered_gdpgrowth2, aes(x = time, y = obs_value, color = ref_area.label)) +
+  geom_line() +
+  ggtitle("Evolution of GDP over time by area") +
+  xlab("Year") +
+  ylab("GDP") +
+  theme(legend.position="bottom", legend.box = "horizontal") +
+  scale_color_discrete(name = "Area")
+
+```
+On this plot, we see an overview of our dataset that represent the GDP through years for our selected list of countries. We observe a very high volatility for Venezuela, Brazil is much less volatile than Venezuela but still more marked than Switzerland and Taiwan.
 
 ```{r}
 # Join the data with the existing time series
@@ -628,3 +645,104 @@ for (i in seq_along(selected_countries)) {
 }
 
 ```
+
+
+The GDP growth covariate was representing an economic factor. As an other covariate we chose a political factor, Worldwide Governance Indicators (WGI). This dataset reflects six broad dimensions of governance (Voice and Accountability, Political Stability and Absence of Violence, Government Effectiveness, Regulatory Quality, Rule of Law, and Control of Corruption) across over 200 countries since 1996. It's developed by the World Bank. We selected only one for our analysis : the political stability and absence of violence. We cleaned this dataset and selected our 4 countries. The estimates of governance are values range from approximately -2.5 (weak) to 2.5 (strong) governance.  performance)
+
+```{r}
+# import dataset
+wgi <- read_excel("wgidataset.xlsx", sheet = "Political StabilityNoViolence", skip = 12)
+
+```
+
+```{r}
+# Countries selection 
+wgi <- wgi %>%
+  filter(row_number() == 1 | `...2` %in% c("BRA", "CHE", "VEN", "TWN"))
+```
+
+```{r}
+# Identify columns where the first row matches your criteria
+cols_to_keep <- which(wgi[1, ] %in% c("Country/Territory", "Code", "Estimate"))
+
+# Convert the indices to column names
+cols_to_keep <- names(wgi)[cols_to_keep]
+
+# Now select these columns
+wgi <- wgi %>%
+  select(all_of(cols_to_keep))
+```
+
+```{r}
+# rename columns
+wgi <- rename(wgi, country = ...1, code=...2)
+```
+
+```{r}
+# remove first row
+wgi <- wgi %>%
+  slice(-1)
+```
+
+```{r}
+# Get the column names
+col_names <- names(wgi)
+
+# Remove the last 4 characters
+new_col_names <- substr(col_names, 1, nchar(col_names) - 4)
+
+# Update the column names
+names(wgi) <- new_col_names
+
+```
+
+```{r}
+# Get the column names
+col_names <- names(wgi)
+
+# Identify the columns that start with '2'
+start_with_2 <- grepl("^2", col_names)
+
+# For the column names that start with '2', remove the last character
+col_names[start_with_2] <- substr(col_names[start_with_2], 1, nchar(col_names[start_with_2]) - 1)
+
+# Update the column names
+names(wgi) <- col_names
+```
+
+```{r}
+# Define the columns to be renamed
+cols_to_rename <- c("2016.", "2017.", "2018.", "2019.", "2020.", "2021.")
+
+# Rename the columns
+names(wgi)[names(wgi) %in% cols_to_rename] <- sub(".$", "", cols_to_rename)
+```
+
+```{r}
+# visu wgi
+wgi <- wgi[,-2]
+
+long_data <- wgi %>% 
+  pivot_longer(cols = -cou, names_to = "Year", values_to = "Political_Stability")
+
+# Round the values in the Political_Stability column to 2 decimal places
+# Convert Political_Stability to numeric
+long_data$Political_Stability <- as.numeric(as.character(long_data$Political_Stability))
+
+# Round the values in the Political_Stability column to 2 decimal places
+long_data$Political_Stability <- round(long_data$Political_Stability, 2)
+
+```
+
+```{r}
+# plot 
+ggplot(long_data, aes(x=Year, y=Political_Stability, color=cou, group=cou)) +
+  geom_line() +
+  labs(x='Year', y='Political Stability', color = "Country") +
+  theme_minimal() +
+  scale_color_brewer(palette='Set1')
+```
+
+Without any suprise, we see that Venezuela has really weak result of stability governance. 
+
+
