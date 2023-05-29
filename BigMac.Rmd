@@ -747,11 +747,8 @@ ggplot(long_data, aes(x=Year, y=Political_Stability, color=cou, group=cou)) +
 Without any suprise, we see that Venezuela has really weak result of stability governance. 
 
 ```{r}
-# Define the four countries
-selected_countries2 <- c("Brazil", "Taiwan, China", "Switzerland", "Venezuela, RB")
-
 # Filter the data for the selected countries
-filtered_data <- long_data[long_data$cou %in% selected_countries2, ]
+filtered_data <- long_data[long_data$cou %in% selected_countries, ]
 
 # Reshape the data to wide format using tidyr::pivot_wider
 library(tidyr)
@@ -773,7 +770,7 @@ cleaned_data <- as.data.frame(wide_data)
 
 for (i in seq_along(selected_countries)) {
   # Capitalize the 'year' column in the dataframe
-  names(country_dfs[[selected_countries[i]]])[names(country_dfs[[selected_countries[i]]]) == "year"] <- "Year" #a mettre en comm pour refaire tout tourner
+  names(cleaned_data[[selected_countries[i]]])[names(cleaned_data[[selected_countries[i]]]) == "year"] <- "Year" #a mettre en comm pour refaire tout tourner
   
   time_series_df <- data.frame(
     Year = floor(time(time_series_list[[i]])), # Get the year part of the time series index
@@ -781,16 +778,16 @@ for (i in seq_along(selected_countries)) {
   )
   
   # Merge the two dataframes
-  merged_df <- merge(time_series_df, country_dfs[[selected_countries[i]]], by = "Year", all.x = TRUE)
+  merged_df <- merge(time_series_df, cleaned_data[[selected_countries[i]]], by = "Year", all.x = TRUE)
   
   # Handle any missing values after the merge
-  merged_df$GDP_growth[is.na(merged_df$GDP_growth)] <- 0 # Or use any other imputation method
+  merged_df$Politics[is.na(merged_df$Politics)] <- 0 # Or use any other imputation method
   
   # Replace the time series with the merged dataframe
-  time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 1)
+ time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 1)
   
   # Replace the GDP growth rate with the merged dataframe
-  country_dfs[[selected_countries[i]]] <- merged_df$GDP_growth
+  cleaned_data[[selected_countries[i]]] <- merged_df$Politics
 }
 
 ```
@@ -804,7 +801,7 @@ best_model_aic <- switch(names(best_AIC_model),
 # Define the models with the new time series and covariates
 arima_models_cov <- mapply(function(ts, covariate) {
   auto.arima(ts, xreg = as.matrix(covariate))
-}, ts = time_series_list, covariate = country_dfs, SIMPLIFY = FALSE)
+}, ts = time_series_list, covariate = cleaned_data, SIMPLIFY = FALSE)
 
 # Calculate AIC for the models with covariates
 aic_values_cov <- lapply(arima_models_cov, AIC)
