@@ -746,4 +746,140 @@ ggplot(long_data, aes(x=Year, y=Political_Stability, color=cou, group=cou)) +
 
 Without any suprise, we see that Venezuela has really weak result of stability governance. 
 
+```{r}
+# Define the four countries
+selected_countries2 <- c("Brazil", "Taiwan, China", "Switzerland", "Venezuela, RB")
 
+# Filter the data for the selected countries
+filtered_data <- long_data[long_data$cou %in% selected_countries2, ]
+
+# Reshape the data to wide format using tidyr::pivot_wider
+library(tidyr)
+wide_data <- pivot_wider(filtered_data, names_from = cou, values_from = Political_Stability)
+
+# Remove any remaining unnecessary columns
+wide_data <- wide_data[, -1]
+
+# Rename the columns
+colnames(wide_data)[-1] <- selected_countries
+
+# Convert wide_data to a data frame
+cleaned_data <- as.data.frame(wide_data)
+```
+
+## a partir de là je n'ai pas terminé. long_data = filtered_gdpgrowth dans la forme et cleaned_data = country_dfs
+```{r}
+# Join the data with the existing time series
+
+for (i in seq_along(selected_countries)) {
+  # Capitalize the 'year' column in the dataframe
+  names(country_dfs[[selected_countries[i]]])[names(country_dfs[[selected_countries[i]]]) == "year"] <- "Year" #a mettre en comm pour refaire tout tourner
+  
+  time_series_df <- data.frame(
+    Year = floor(time(time_series_list[[i]])), # Get the year part of the time series index
+    Dollar_Price = as.numeric(time_series_list[[i]]) # Convert time series data to numeric
+  )
+  
+  # Merge the two dataframes
+  merged_df <- merge(time_series_df, country_dfs[[selected_countries[i]]], by = "Year", all.x = TRUE)
+  
+  # Handle any missing values after the merge
+  merged_df$GDP_growth[is.na(merged_df$GDP_growth)] <- 0 # Or use any other imputation method
+  
+  # Replace the time series with the merged dataframe
+  time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 1)
+  
+  # Replace the GDP growth rate with the merged dataframe
+  country_dfs[[selected_countries[i]]] <- merged_df$GDP_growth
+}
+
+```
+
+```{r}
+# Calculate AIC for best model without covariates
+best_model_aic <- switch(names(best_AIC_model),
+                         ARIMA_AIC = arima_aic,
+                         ETS_AIC = ets_aic)
+
+# Define the models with the new time series and covariates
+arima_models_cov <- mapply(function(ts, covariate) {
+  auto.arima(ts, xreg = as.matrix(covariate))
+}, ts = time_series_list, covariate = country_dfs, SIMPLIFY = FALSE)
+
+# Calculate AIC for the models with covariates
+aic_values_cov <- lapply(arima_models_cov, AIC)
+
+# Prepare the AIC values for comparison
+aic_without_cov <- sapply(best_model_aic, `[[`, "AIC")
+
+# Compare the AIC values for the models with and without the covariates
+aic_comparison <- data.frame(
+  Country = selected_countries,
+  AIC_Without_Covariates = unlist(aic_without_cov),
+  AIC_With_Covariates = unlist(aic_values_cov)
+)
+
+# Print the AIC comparison
+print(aic_comparison)
+
+
+```
+
+```{r}
+# Plot the actual vs predicted prices
+for (i in seq_along(selected_countries)) {
+  fitted_values <- fitted(arima_models_cov[[i]])
+  actual_values <- time_series_list[[i]]
+  
+  df <- data.frame(
+    Year = time(fitted_values),
+    Actual_Price = actual_values,
+    Predicted_Price = fitted_values
+  )
+  
+  plot <- ggplot(df, aes(x = Year)) +
+    geom_line(aes(y = Actual_Price), color = "blue") +
+    geom_line(aes(y = Predicted_Price), color = "red") +
+    labs(
+      title = paste("Actual vs Predicted Prices for", selected_countries[i]),
+      x = "Year",
+      y = "Dollar Price"
+    ) +
+    theme_minimal()
+  print(plot)
+}
+```
+
+```{r}
+# Plot the actual vs predicted prices for the models with and without covariates
+for (i in seq_along(selected_countries)) {
+  fitted_values_cov <- fitted(arima_models_cov[[i]])
+  fitted_values_without_cov <- fitted(arima_models[[i]])
+  actual_values <- time_series_list[[i]]
+  
+  df <- data.frame(
+    Year = time(fitted_values_cov),
+    Actual_Price = actual_values,
+    Predicted_Price_with_Cov = fitted_values_cov,
+    Predicted_Price_without_Cov = fitted_values_without_cov
+  )
+  
+  plot <- ggplot(df, aes(x = Year)) +
+    geom_line(aes(y = Actual_Price, color = "Actual Price")) +
+    geom_line(aes(y = Predicted_Price_with_Cov, color = "Predicted with Covariates")) +
+    geom_line(aes(y = Predicted_Price_without_Cov, color = "Predicted without Covariates")) +
+    labs(
+      title = paste("Actual vs Predicted Prices for", selected_countries[i]),
+      x = "Year",
+      y = "Dollar Price",
+      color = "Legend"
+    ) +
+    scale_color_manual(values = c("Actual Price" = "blue", 
+                                  "Predicted with Covariates" = "red", 
+                                  "Predicted without Covariates" = "green")) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+  print(plot)
+}
+
+```
