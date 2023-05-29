@@ -333,7 +333,7 @@ wide_bigmac_yearly <- wide_bigmac %>%
 #})
 
 #This works but wrong dates
-time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = c(year(min(wide_bigmac$date)), month(min(wide_bigmac$date))), frequency = 1)
+time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = 2000, frequency = 1)
 ```
 
 We are vizualizing our time series for the 4 countries : 
@@ -645,7 +645,43 @@ for (i in seq_along(selected_countries)) {
 }
 
 ```
+```{r}
+for (i in seq_along(selected_countries)) {
+  # Fitted and actual values
+  fitted_values_with_cov <- fitted(arima_models_cov[[i]])
+  fitted_values_without_cov <- fitted(arima_models[[i]])
+  actual_values <- time_series_list[[i]]
 
+  # Forecasts
+  forecast_values_with_cov <- forecasts_with_cov[[i]]$mean
+  forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
+  
+  # Data frame for plotting
+  df <- data.frame(
+    Year = c(time(actual_values), time(forecast_values_with_cov)),
+    Actual_Price = c(actual_values, rep(NA, length(forecast_values_with_cov))),
+    Fitted_Price_with_Cov = c(fitted_values_with_cov, forecast_values_with_cov),
+    Fitted_Price_without_Cov = c(fitted_values_without_cov, forecast_values_without_cov)
+  )
+  
+  # Plot
+  plot <- ggplot(df, aes(x = Year)) +
+    geom_line(aes(y = Actual_Price), color = "blue") +
+    geom_line(aes(y = Fitted_Price_with_Cov), color = "red") +
+    geom_line(aes(y = Fitted_Price_without_Cov), color = "green") +
+    labs(
+      title = paste("Actual, Fitted and Forecast Prices for", selected_countries[i]),
+      x = "Year",
+      y = "Dollar Price"
+    ) +
+    scale_color_manual(values = c("Actual Price" = "blue", 
+                                  "With Covariates" = "red", 
+                                  "Without Covariates" = "green")) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+  print(plot)
+}
+```
 
 The GDP growth covariate was representing an economic factor. As an other covariate we chose a political factor, Worldwide Governance Indicators (WGI). This dataset reflects six broad dimensions of governance (Voice and Accountability, Political Stability and Absence of Violence, Government Effectiveness, Regulatory Quality, Rule of Law, and Control of Corruption) across over 200 countries since 1996. It's developed by the World Bank. We selected only one for our analysis : the political stability and absence of violence. We cleaned this dataset and selected our 4 countries. The estimates of governance are values range from approximately -2.5 (weak) to 2.5 (strong) governance.  performance)
 
@@ -821,40 +857,58 @@ aic_comparison <- data.frame(
 # Print the AIC comparison
 print(aic_comparison)
 ```
+```{r}
+# Forecast for the next three years for models with covariates
+forecasts_with_cov <- mapply(function(model, covariate) {
+  future_covariate_values <- matrix(rep(tail(covariate, n = 1), 3), nrow = 3)
+  forecast(model, h = 3, xreg = future_covariate_values)
+}, model = arima_models_cov, covariate = cleaned_data, SIMPLIFY = FALSE)
+
+# Subtract the year from the forecast values for the first country
+forecasts_with_cov[[1]]$mean <- forecasts_with_cov[[1]]$mean - 2402
+forecasts_with_cov[[1]]$lower[,1] <- forecasts_with_cov[[1]]$lower[,1] - 2402
+forecasts_with_cov[[1]]$lower[,2] <- forecasts_with_cov[[1]]$lower[,2] - 2402
+forecasts_with_cov[[1]]$upper[,1] <- forecasts_with_cov[[1]]$upper[,1] - 2402
+forecasts_with_cov[[1]]$upper[,2] <- forecasts_with_cov[[1]]$upper[,2] - 2402
+
+```
+
 
 ```{r}
-# Plot the actual vs predicted prices
-
 for (i in seq_along(selected_countries)) {
+  # Fitted and actual values
   fitted_values_with_cov <- fitted(arima_models_cov[[i]])
   fitted_values_without_cov <- fitted(arima_models[[i]])
   actual_values <- time_series_list[[i]]
+
+  # Forecasts
+  forecast_values_with_cov <- forecasts_with_cov[[i]]$mean
+  forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
   
+  # Data frame for plotting
   df <- data.frame(
-    Year = time(fitted_values_with_cov),
-    Actual_Price = actual_values,
-    Predicted_Price_with_Cov = fitted_values_with_cov,
-    Predicted_Price_without_Cov = fitted_values_without_cov
+    Year = c(time(actual_values), time(forecast_values_with_cov)),
+    Actual_Price = c(actual_values, rep(NA, length(forecast_values_with_cov))),
+    Fitted_Price_with_Cov = c(fitted_values_with_cov, forecast_values_with_cov),
+    Fitted_Price_without_Cov = c(fitted_values_without_cov, forecast_values_without_cov)
   )
   
+  # Plot
   plot <- ggplot(df, aes(x = Year)) +
-    geom_line(aes(y = Actual_Price, color = "Actual Price")) +
-    geom_line(aes(y = Predicted_Price_with_Cov, color = "Predicted with Covariates")) +
-    geom_line(aes(y = Predicted_Price_without_Cov, color = "Predicted without Covariates")) +
+    geom_line(aes(y = Actual_Price), color = "blue") +
+    geom_line(aes(y = Fitted_Price_with_Cov), color = "red") +
+    geom_line(aes(y = Fitted_Price_without_Cov), color = "green") +
     labs(
-      title = paste("Actual vs Predicted Prices for", selected_countries[i]),
+      title = paste("Actual, Fitted and Forecast Prices for", selected_countries[i]),
       x = "Year",
-      y = "Dollar Price",
-      color = "Legend"
+      y = "Dollar Price"
     ) +
     scale_color_manual(values = c("Actual Price" = "blue", 
-                                  "Predicted with Covariates" = "red", 
-                                  "Predicted without Covariates" = "green")) +
+                                  "With Covariates" = "red", 
+                                  "Without Covariates" = "green")) +
     theme_minimal() +
     theme(legend.position = "bottom")
-  
   print(plot)
 }
 
 ```
-
