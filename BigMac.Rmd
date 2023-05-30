@@ -187,7 +187,7 @@ inflation_data_clean <- inflation_data %>%
 # Remove NA 
 inf <- na.omit(inflation_data_clean)
 # Only keep years from 2000 to 2022
-inf_filtered <- inf %>% filter(Year >= 2000 & Year <= 2022)
+inf_filtered <- inf %>% filter(Year >= 2000 & Year <= 2025)
 # to only have the years 
 bigmac$Year <- format(as.Date(bigmac$date), "%Y")
 #Remove unnecessary collumns 
@@ -484,7 +484,7 @@ for (i in seq_along(selected_countries)) {
 
 
 ```
-Inflation covariate : 
+## INFLATION 
 ```{r}
 filtered_inflation <- inf_filtered %>% filter(Country %in% selected_countries) 
 ggplot(data = filtered_inflation, aes(x = Year, y = Inflation_Rate, color = Country)) +
@@ -499,6 +499,10 @@ ggplot(data = filtered_inflation, aes(x = Year, y = Inflation_Rate, color = Coun
 On this plot, we see an overview of our dataset that represent the GDP through years for our selected list of countries. We observe Venezuela with a very high pic in 2018. 
 
 ```{r}
+countryinf_dfs <- list()
+
+#country_dfs <- list()
+
 for (country in selected_countries) {
      # Filter for the specific country
      countryinf_df <- filtered_inflation %>%
@@ -538,7 +542,7 @@ best_model_aicc <- switch(names(best_AIC_model),
 # Define the models with the new time series and covariates
 arima_models_cov_inf <- mapply(function(ts, covariate) {
   auto.arima(ts, xreg = as.matrix(covariate))
-}, ts = time_series_list, covariate = country_dfs, SIMPLIFY = FALSE)
+}, ts = time_series_list, covariate = countryinf_dfs, SIMPLIFY = FALSE)
 
 # Calculate AIC for the models with covariates
 aic_values_covv <- lapply(arima_models_cov_inf, AIC)
@@ -555,31 +559,35 @@ aic_comparison_inf <- data.frame(
 
 # Print the AIC comparison
 print(aic_comparison_inf)
+```
 
+```{r}
+# Filter the inflation data for 2023 to 2025
+future_inflation <- inf_filtered %>% 
+  filter(Year >= 2022 & Year <= 2024 & Country %in% selected_countries)
 
-for (i in seq_along(selected_countries)) {
-      fitted_values <- fitted(arima_models_cov_inf[[i]])
-      actual_values <- time_series_list[[i]]
-     
-      df <- data.frame(
-          Year = time(fitted_values),
-          Actual_Price = actual_values,
-          Predicted_Price = fitted_values
-      )
-     
-      plot <- ggplot(df, aes(x = Year)) +
-          geom_line(aes(y = Actual_Price), color = "blue") +
-          geom_line(aes(y = Predicted_Price), color = "red") +
-          labs(
-              title = paste("Actual vs Predicted Prices for", selected_countries[i]),
-              x = "Year",
-              y = "Dollar Price"
-          ) +
-          theme_minimal()
-      print(plot)
-  }
+# Prepare the future_inflation_list
+future_inflation_list <- lapply(selected_countries, function(country) {
+  # Filter for the specific country
+  future_inflation_country <- future_inflation %>% 
+    filter(Country == country) %>% 
+    select(Inflation_Rate)
+  
+  # Convert the data frame to a matrix (required for the 'xreg' argument in forecast function)
+  as.matrix(future_inflation_country)
+})
 
+# Now, we can make the forecasts
+forecasts_with_cov_inf <- mapply(function(model, future_covariate) {
+  forecast(model, h = 3, xreg = future_covariate)
+}, model = arima_models_cov_inf, future_covariate = future_inflation_list, SIMPLIFY = FALSE)
 
+# Now, you can access the forecasts with:
+forecasts_with_cov_inf
+
+```
+
+```{r}
 # Plot the actual vs predicted prices for the models with and without covariates
 for (i in seq_along(selected_countries)) {
   fitted_values_cov_inf <- fitted(arima_models_cov_inf[[i]])
@@ -593,10 +601,17 @@ for (i in seq_along(selected_countries)) {
     Predicted_Price_without_Cov = fitted_values_without_covv
   )
   
+  # Create a data frame with the forecasted values and the corresponding years
+  forecast_df <- data.frame(
+    Year = seq(max(df$Year) + 0, by = 1, length.out = 3),
+    Forecasted_Price_with_Cov = as.numeric(forecasts_with_cov_inf[[i]]$mean)
+  )
+  
   plot <- ggplot(df, aes(x = Year)) +
     geom_line(aes(y = Actual_Price, color = "Actual Price")) +
     geom_line(aes(y = Predicted_Price_with_Cov, color = "Predicted with Covariates")) +
     geom_line(aes(y = Predicted_Price_without_Cov, color = "Predicted without Covariates")) +
+    geom_line(data = forecast_df, aes(x = Year, y = Forecasted_Price_with_Cov, color = "Forecasted with Covariates")) +
     labs(
       title = paste("Actual vs Predicted Prices for", selected_countries[i]),
       x = "Year",
@@ -605,12 +620,15 @@ for (i in seq_along(selected_countries)) {
     ) +
     scale_color_manual(values = c("Actual Price" = "blue", 
                                   "Predicted with Covariates" = "red", 
-                                  "Predicted without Covariates" = "green")) +
+                                  "Predicted without Covariates" = "green", 
+                                  "Forecasted with Covariates" = "purple")) +
     theme_minimal() +
     theme(legend.position = "bottom")
   print(plot)
 }
+
 ```
+## GDP GROWTH
 
 Let's introduce the covariates. As discussed with the assistant, we only need 1 covariate so let's introduce the Annual  Growth Rate of Output per Worker.
 
@@ -659,7 +677,7 @@ On this plot, we see an overview of our dataset that represent the GDP through y
 
 ```{r}
 # Join the data with the existing time series
-
+country_dfs_GDP <- list()
 for (i in seq_along(selected_countries)) {
   # Capitalize the 'year' column in the dataframe
   names(country_dfs[[selected_countries[i]]])[names(country_dfs[[selected_countries[i]]]) == "year"] <- "Year" #a mettre en comm pour refaire tout tourner
@@ -679,7 +697,7 @@ for (i in seq_along(selected_countries)) {
   time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 1)
   
   # Replace the GDP growth rate with the merged dataframe
-  country_dfs[[selected_countries[i]]] <- merged_df$GDP_growth
+  country_dfs_GDP[[selected_countries[i]]] <- merged_df$GDP_growth
 }
 
 ```
@@ -693,7 +711,7 @@ best_model_aic <- switch(names(best_AIC_model),
 # Define the models with the new time series and covariates
 arima_models_cov <- mapply(function(ts, covariate) {
   auto.arima(ts, xreg = as.matrix(covariate))
-}, ts = time_series_list, covariate = country_dfs, SIMPLIFY = FALSE)
+}, ts = time_series_list, covariate = country_dfs_GDP, SIMPLIFY = FALSE)
 
 # Calculate AIC for the models with covariates
 aic_values_cov <- lapply(arima_models_cov, AIC)
@@ -714,64 +732,6 @@ print(aic_comparison)
 
 ```
 
-```{r}
-# Plot the actual vs predicted prices
-for (i in seq_along(selected_countries)) {
-  fitted_values <- fitted(arima_models_cov[[i]])
-  actual_values <- time_series_list[[i]]
-  
-  df <- data.frame(
-    Year = time(fitted_values),
-    Actual_Price = actual_values,
-    Predicted_Price = fitted_values
-  )
-  
-  plot <- ggplot(df, aes(x = Year)) +
-    geom_line(aes(y = Actual_Price), color = "blue") +
-    geom_line(aes(y = Predicted_Price), color = "red") +
-    labs(
-      title = paste("Actual vs Predicted Prices for", selected_countries[i]),
-      x = "Year",
-      y = "Dollar Price"
-    ) +
-    theme_minimal()
-  print(plot)
-}
-```
-
-```{r}
-# Plot the actual vs predicted prices for the models with and without covariates
-for (i in seq_along(selected_countries)) {
-  fitted_values_cov <- fitted(arima_models_cov[[i]])
-  fitted_values_without_cov <- fitted(arima_models[[i]])
-  actual_values <- time_series_list[[i]]
-  
-  df <- data.frame(
-    Year = time(fitted_values_cov),
-    Actual_Price = actual_values,
-    Predicted_Price_with_Cov = fitted_values_cov,
-    Predicted_Price_without_Cov = fitted_values_without_cov
-  )
-  
-  plot <- ggplot(df, aes(x = Year)) +
-    geom_line(aes(y = Actual_Price, color = "Actual Price")) +
-    geom_line(aes(y = Predicted_Price_with_Cov, color = "Predicted with Covariates")) +
-    geom_line(aes(y = Predicted_Price_without_Cov, color = "Predicted without Covariates")) +
-    labs(
-      title = paste("Actual vs Predicted Prices for", selected_countries[i]),
-      x = "Year",
-      y = "Dollar Price",
-      color = "Legend"
-    ) +
-    scale_color_manual(values = c("Actual Price" = "blue", 
-                                  "Predicted with Covariates" = "red", 
-                                  "Predicted without Covariates" = "green")) +
-    theme_minimal() +
-    theme(legend.position = "bottom")
-  print(plot)
-}
-
-```
 ```{r}
 for (i in seq_along(selected_countries)) {
   # Fitted and actual values
@@ -812,6 +772,7 @@ for (i in seq_along(selected_countries)) {
 
 The GDP growth covariate was representing an economic factor. As an other covariate we chose a political factor, Worldwide Governance Indicators (WGI). This dataset reflects six broad dimensions of governance (Voice and Accountability, Political Stability and Absence of Violence, Government Effectiveness, Regulatory Quality, Rule of Law, and Control of Corruption) across over 200 countries since 1996. It's developed by the World Bank. We selected only one for our analysis : the political stability and absence of violence. We cleaned this dataset and selected our 4 countries. The estimates of governance are values range from approximately -2.5 (weak) to 2.5 (strong) governance.  performance)
 
+## POLITICAL STAB
 ```{r}
 # import dataset
 wgi <- read_excel("wgidataset.xlsx", sheet = "Political StabilityNoViolence", skip = 12)
@@ -991,12 +952,19 @@ forecasts_with_cov <- mapply(function(model, covariate) {
   forecast(model, h = 3, xreg = future_covariate_values)
 }, model = arima_models_cov, covariate = cleaned_data, SIMPLIFY = FALSE)
 
+forecasts_without_cov <- lapply(arima_models, forecast, h = 3)
+forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
+
+
 # Subtract the year from the forecast values for the first country
 forecasts_with_cov[[1]]$mean <- forecasts_with_cov[[1]]$mean - 2402
 forecasts_with_cov[[1]]$lower[,1] <- forecasts_with_cov[[1]]$lower[,1] - 2402
 forecasts_with_cov[[1]]$lower[,2] <- forecasts_with_cov[[1]]$lower[,2] - 2402
 forecasts_with_cov[[1]]$upper[,1] <- forecasts_with_cov[[1]]$upper[,1] - 2402
 forecasts_with_cov[[1]]$upper[,2] <- forecasts_with_cov[[1]]$upper[,2] - 2402
+
+forecasts_without_cov <- lapply(arima_models, forecast, h = 3)
+forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
 
 ```
 
