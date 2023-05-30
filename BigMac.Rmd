@@ -115,9 +115,12 @@ bigmac %>%
 ```
 This heatmap displays the the level of price per country. The lighter color shows the highest prices, and at the opposite, the darker colors represent the lowest prices. The prices change through years. Indeed, we can see that in Brazil, the prices were quite cheap until 2007. Then they started to increase until 2013. And from 2013, the prices decrease again. For a lot of countries we can see that in 2010-2013, the prices increased. 
 
+
+#Regions 
+
 Ici j'ai rajouté les régions géographiques pour chaques pays pour voir si les groupes sont cohérants
 ```{r}
-#Adding Region to the dataset
+#regions
 country_region <- c("South America", "Oceania", "South America", "Europe", "North America", "South America", "Asia", "Europe", "Europe", "Europe", "Asia", "Europe", "Asia", "Asia", "Asia", "Asia", "North America", "Oceania", "Europe", "Europe", "Asia", "Africa", "Asia", "Europe", "Europe", "Asia", "Asia", "North America", "Asia", "Europe", "South America", "Europe", "South America", "Africa", "South America", "Central America", "Asia", "Asia", "Asia", "Europe", "South America", "Asia", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Asia", "Europe", "Europe", "Europe", "Europe", "Europe", "Europe", "Asia", "Asia", "Asia", "Asia", "Europe", "Central America", "Central America", "Asia", "Asia", "Europe", "Asia", "Europe", "Asia", "Central America", "Asia", "Asia", "Europe", "Europe", "Europe", "Asia")
 names(country_region) <- c("Argentina", "Australia", "Brazil", "Britain", "Canada", "Chile", "China", "Czech Republic", "Denmark", "Euro area", "Hong Kong", "Hungary", "Indonesia", "Israel", "Japan", "Malaysia", "Mexico", "New Zealand", "Poland", "Russia", "Singapore", "South Africa", "South Korea", "Sweden", "Switzerland", "Taiwan", "Thailand", "United States", "Philippines", "Norway", "Peru", "Turkey", "Venezuela", "Egypt", "Colombia", "Costa Rica", "Pakistan", "Saudi Arabia", "Sri Lanka", "Ukraine", "Uruguay", "UAE", "Austria", "Belgium", "Estonia", "Finland", "France", "Germany", "Greece", "India", "Ireland", "Italy", "Netherlands", "Portugal", "Spain", "Lithuania", "Vietnam", "Azerbaijan", "Bahrain", "Croatia", "Guatemala", "Honduras", "Jordan", "Kuwait", "Latvia", "Lebanon", "Moldova", "Nicaragua", "Oman", "Qatar", "Romania", "Slovakia", "Slovenia", "United Arab Emirates")
 #New dataset of bigmax with regions
@@ -154,9 +157,10 @@ ggplot(bigmac_region, aes(x = date, y = dollar_price, color = Region)) +
   theme(legend.title = element_blank())
 ```
 
-From this graph, we see different prices behavior depending of the regions. First, we clearly identify that South America has a lot of prices fluctuation compared to other regions; especially a big decrease between 2013-2015. The other regions are more calm in terms of fluctuation. We especially observe a long and regular increase of prices in Oceania and North America. 
+From this graph, we see different prices behavior depending of the regions. First, we clearly identify that South America has a lot of prices fluctuation compared to other regions; especially a big decrease between 2013-2015. The other regions are more calm in terms of fluctuation. We especially observe a long and regular increase of prices in Oceania and North America. Sadly nothing can be taken out out this graphs since the fluctuation is way too big. 
 
 
+# Corellation 
 ```{r}
 #import data inflation to do the correlation between the two datasets 
 library(readxl)
@@ -222,14 +226,17 @@ corr_by_country <- merged_data %>%
 ```{r}
 print(corr_by_country)
 ```
+A good correlation between Taiwan and inflation. But there is nothing we can do with those data
 
 
 # Focus on selected countries
 
+Our selected countries are Venezuela, Brazil, Switzerland, Taiwan.
+
 ## Visualization
 
 ```{r}
-# Filter data for the specified countries
+#specified countries
 selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
 
 bigmac_filtered <- bigmac %>%
@@ -240,7 +247,6 @@ bigmac_avg2 <- bigmac_grouped2 %>%
   summarise(avg_price = mean(dollar_price))
 print(bigmac_avg2)
 #graph avg
-library(ggplot2)
 graph_bigmac_avg2 <- ggplot(bigmac_avg2, aes(x=country, y=avg_price)) +
   geom_segment( aes(x=country, xend=country, y=0, yend=avg_price
 ), color="darkorange") +
@@ -260,7 +266,7 @@ graph_bigmac_avg2
 ```
 
 ```{r}
-# Average Dollar price bar plot
+#Average Dollar price bar plot
 bigmac %>%
   filter(country %in% selected_countries) %>%
   group_by(country) %>%
@@ -273,7 +279,7 @@ bigmac %>%
 ```
 
 ```{r}
-# Box plot for the 4 selected countries
+#Box plot
 bigmac %>%
   filter(country %in% selected_countries) %>%
   ggplot(aes(x = country, y = dollar_price, fill = country)) +
@@ -306,10 +312,10 @@ library(forecast)
 library(ggplot2)
 library(zoo)
 library(xts)
-# Filter the data for the 4 selected countries
+# Filter the data for the selected countries
 filtered_bigmac <- bigmac %>%
   filter(country %in% selected_countries)
-# Pivot the data to a wide format
+# wide format
 wide_bigmac <- filtered_bigmac %>%
   select(country, date, dollar_price) %>%
   spread(country, dollar_price) %>%
@@ -332,7 +338,7 @@ wide_bigmac_yearly <- wide_bigmac %>%
 #  zoo(x, order.by = wide_bigmac$date)
 #})
 
-#This works but wrong dates
+#This works
 time_series_list <- lapply(wide_bigmac_yearly[-1], ts, start = 2000, frequency = 1)
 ```
 
@@ -356,17 +362,16 @@ time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
 ```
 
 ```{r}
-selected_countries <- c("Taiwan", "Venezuela", "Brazil", "Switzerland")
-#Fix dégueulasse pour montrer les bonnes times series et les bons pays
+selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
+#Fix
 ```
 
 First of all lets perform easy models. Here we will start with a Simple Exponential Smoothing since we have no seasonality and no clear trend in our data. 
 
 ```{r}
-# Fit Simple Exponential Smoothing (SES) models
+
 ses_models <- lapply(time_series_list, ses)
 
-# Forecast using SES models
 ses_forecasts <- lapply(ses_models, forecast, h = 5)
 
 # Plot forecasts
@@ -374,8 +379,6 @@ for (i in seq_along(selected_countries)) {
   plot(ses_forecasts[[i]], main = paste("SES Forecast for", selected_countries[i]), xlab = "Year", ylab = "Dollar Price")
 }
 
-library(zoo)
-library(ggplot2)
 
 yearly_forecasts <- lapply(ses_forecasts, function(x) {
   forecast_data <- data.frame(Date = time(x$mean), Forecast = x$mean)
@@ -390,10 +393,9 @@ yearly_forecasts <- lapply(ses_forecasts, function(x) {
 We are now performing a Holt's Linear model with only trend but no seasonality. 
 
 ```{r}
-# Fit Holt's Linear Trend models
+
 holt_models <- lapply(time_series_list, holt)
 
-# Forecast using Holt's Linear Trend models
 holt_forecasts <- lapply(holt_models, forecast, h = 5)
 
 # Plot forecasts
@@ -403,9 +405,9 @@ for (i in seq_along(selected_countries)) {
 ```
 Here we are looking into an ETS model 
 ```{r}
-# Fit ETS models
+
 ets_models <- lapply(time_series_list, ets)
-# Forecast using ETS models
+
 ets_forecasts <- lapply(ets_models, forecast, h = 5)
 # Plot forecasts
 for (i in seq_along(selected_countries)) {
@@ -421,7 +423,7 @@ We are here perfroming a STL decomposition. Since we have NA's values in our Tai
 
 ##NOT POSSIBLE BECAUSE NOT PERIODIC
 ```
-Now we are perfomring an ARIMA model for our 4 countries : 
+Now we are performing an ARIMA model for our 4 countries : 
 ```{r}
 # Fit ARIMA models and forecast
 arima_models <- lapply(time_series_list, auto.arima)
@@ -454,30 +456,28 @@ results <- data.frame(
   ETS_AIC = sapply(ets_aic, `[[`, "AIC")
 )
 
-# Find the model with minimum AIC and BIC for each country
+#find the model with min AIC and BIC for each country
 results$Min_AIC_Model <- apply(results[,c("ARIMA_AIC", "ETS_AIC")], 1, which.min)
 
-# Print results
 print(results)
 
-# Find the model with overall minimum AIC and BIC
+#find model with overall min AIC and BIC
 best_AIC_model <- which.min(c(ARIMA_AIC = mean(sapply(arima_aic, `[[`, "AIC")),
                               ETS_AIC = mean(sapply(ets_aic, `[[`, "AIC"))))
 
-# Print the model with the lowest AIC
+
 print(paste("Model with minimum AIC: ", names(best_AIC_model), ", AIC: ", best_AIC_model))
 
 
-# Choose the best models based on AIC and BIC
+#choose best models based on AIC and BIC
 best_models_AIC <- switch(names(best_AIC_model),
                       ARIMA_AIC = arima_models,
                       ETS_AIC = ets_models)
 
 
-# Forecast using best models
+
 best_forecasts_AIC <- lapply(best_models_AIC, forecast, h = 5)
 
-# Plot forecasts from the best models
 for (i in seq_along(selected_countries)) {
   plot(best_forecasts_AIC[[i]], main = paste("Forecast for", selected_countries[i], "using best AIC model"), xlab = "Year", ylab = "Dollar Price")
 }
@@ -504,17 +504,17 @@ countryinf_dfs <- list()
 #country_dfs <- list()
 
 for (country in selected_countries) {
-     # Filter for the specific country
+     
      countryinf_df <- filtered_inflation %>%
          filter(Country == country) %>%
          select(year = Year, Inflation_growth = Inflation_Rate)
      
-     # Add to the list
+  
      countryinf_dfs[[country]] <- countryinf_df
  }
 
 for (i in seq_along(selected_countries)) {
-  # Capitalize the 'year' column in the dataframe
+  
   names(countryinf_dfs[[selected_countries[i]]])[names(countryinf_dfs[[selected_countries[i]]]) == "year"] <- "Year" 
   
   time_series_df <- data.frame(
@@ -522,16 +522,16 @@ for (i in seq_along(selected_countries)) {
     Dollar_Price = as.numeric(time_series_list[[i]]) # Convert time series data to numeric
   )
   
-  # Merge the two dataframes
+
   merged_df <- merge(time_series_df, countryinf_dfs[[selected_countries[i]]], by = "Year", all.x = TRUE)
   
-  # Handle any missing values after the merge
+  
   merged_df$Inflation_growth[is.na(merged_df$Inflation_growth)] <- 0 # Or use any other imputation method
   
-  # Replace the time series with the merged dataframe
+  
   time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 1)
   
-  # Replace the Inflation growth rate with the merged dataframe
+ 
   countryinf_dfs[[selected_countries[i]]] <- merged_df$Inflation_growth
 }
 
@@ -539,25 +539,25 @@ best_model_aicc <- switch(names(best_AIC_model),
                          ARIMA_AIC = arima_aic,
                          ETS_AIC = ets_aic)
 
-# Define the models with the new time series and covariates
+
 arima_models_cov_inf <- mapply(function(ts, covariate) {
   auto.arima(ts, xreg = as.matrix(covariate))
 }, ts = time_series_list, covariate = countryinf_dfs, SIMPLIFY = FALSE)
 
-# Calculate AIC for the models with covariates
+
 aic_values_covv <- lapply(arima_models_cov_inf, AIC)
 
-# Prepare the AIC values for comparison
+
 aic_without_covv <- sapply(best_model_aicc, `[[`, "AIC")
 
-# Compare the AIC values for the models with and without the covariates
+
 aic_comparison_inf <- data.frame(
   Country = selected_countries,
   AIC_Without_Covariates = unlist(aic_without_covv),
   AIC_With_Covariates = unlist(aic_values_covv)
 )
 
-# Print the AIC comparison
+
 print(aic_comparison_inf)
 ```
 
@@ -568,12 +568,11 @@ future_inflation <- inf_filtered %>%
 
 # Prepare the future_inflation_list
 future_inflation_list <- lapply(selected_countries, function(country) {
-  # Filter for the specific country
   future_inflation_country <- future_inflation %>% 
     filter(Country == country) %>% 
     select(Inflation_Rate)
   
-  # Convert the data frame to a matrix (required for the 'xreg' argument in forecast function)
+  # Convert the data frame to a matrix -> required for the 'xreg' argument in forecast function
   as.matrix(future_inflation_country)
 })
 
@@ -582,7 +581,6 @@ forecasts_with_cov_inf <- mapply(function(model, future_covariate) {
   forecast(model, h = 3, xreg = future_covariate)
 }, model = arima_models_cov_inf, future_covariate = future_inflation_list, SIMPLIFY = FALSE)
 
-# Now, you can access the forecasts with:
 forecasts_with_cov_inf
 
 ```
@@ -633,7 +631,7 @@ for (i in seq_along(selected_countries)) {
 Let's introduce the covariates. As discussed with the assistant, we only need 1 covariate so let's introduce the Annual  Growth Rate of Output per Worker.
 
 ```{r}
-# Import the data
+#Import
 gdpgrowth <- read_csv("gdpgrowth.csv")
 gdpgrowth$ref_area.label[gdpgrowth$ref_area.label == "Taiwan, China"] <- "Taiwan"
 gdpgrowth$ref_area.label[gdpgrowth$ref_area.label == "Venezuela, Bolivarian Republic of"] <- "Venezuela"
@@ -645,14 +643,13 @@ filtered_gdpgrowth <- gdpgrowth %>%
 # Initialize a list to hold dataframes for each country
 country_dfs <- list()
 
-# Continue with the existing code
 for (country in selected_countries) {
-  # Filter for the specific country
+  #Filter for the specific country
   country_df <- filtered_gdpgrowth %>%
     filter(ref_area.label == country) %>%
     select(year = time, GDP_growth = obs_value)
   
-  # Add to the list
+  #Add to the list
   country_dfs[[country]] <- country_df
 }
 ```
@@ -660,10 +657,10 @@ for (country in selected_countries) {
 ```{r}
 # GDP Growth EDA 
 
-# Filter out the unnecessary columns
+# unnecessary columns
 filtered_gdpgrowth2 <- select(filtered_gdpgrowth, -c(indicator.label, source.label))
 
-# Create the line plot
+
 ggplot(data = filtered_gdpgrowth2, aes(x = time, y = obs_value, color = ref_area.label)) +
   geom_line() +
   ggtitle("Evolution of GDP Growth over time by country") +
@@ -687,7 +684,7 @@ for (i in seq_along(selected_countries)) {
     Dollar_Price = as.numeric(time_series_list[[i]]) # Convert time series data to numeric
   )
   
-  # Merge the two dataframes
+  # merge the 2 dataframe
   merged_df <- merge(time_series_df, country_dfs[[selected_countries[i]]], by = "Year", all.x = TRUE)
   
   # Handle any missing values after the merge
@@ -703,37 +700,37 @@ for (i in seq_along(selected_countries)) {
 ```
 
 ```{r}
-# Calculate AIC for best model without covariates
+# calculate AIC for best model without covariates
 best_model_aic <- switch(names(best_AIC_model),
                          ARIMA_AIC = arima_aic,
                          ETS_AIC = ets_aic)
 
-# Define the models with the new time series and covariates
+# define the models with the new time series and covariates
 arima_models_cov <- mapply(function(ts, covariate) {
   auto.arima(ts, xreg = as.matrix(covariate))
 }, ts = time_series_list, covariate = country_dfs_GDP, SIMPLIFY = FALSE)
 
-# Calculate AIC for the models with covariates
+# calculate AIC for the models with covariates
 aic_values_cov <- lapply(arima_models_cov, AIC)
 
-# Prepare the AIC values for comparison
+# prepare the AIC values for comparison
 aic_without_cov <- sapply(best_model_aic, `[[`, "AIC")
 
-# Compare the AIC values for the models with and without the covariates
+# compare the AIC values 
 aic_comparison <- data.frame(
   Country = selected_countries,
   AIC_Without_Covariates = unlist(aic_without_cov),
   AIC_With_Covariates = unlist(aic_values_cov)
 )
 
-# Print the AIC comparison
+
 print(aic_comparison)
 
 
 ```
 
 ```{r}
-# Forecast for the next three years for models with covariates
+#forecast for the next three years with cov
 forecasts_with_cov <- mapply(function(model, covariate) {
   future_covariate_values <- matrix(rep(tail(covariate, n = 1), 3), nrow = 3)
   forecast(model, h = 3, xreg = future_covariate_values)
@@ -743,7 +740,7 @@ forecasts_without_cov <- lapply(arima_models, forecast, h = 3)
 forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
 
 
-# Subtract the year from the forecast values for the first country
+#subtract the year from the forecast values for the first country
 forecasts_with_cov[[1]]$mean <- forecasts_with_cov[[1]]$mean 
 forecasts_with_cov[[1]]$lower[,1] <- forecasts_with_cov[[1]]$lower[,1] 
 forecasts_with_cov[[1]]$lower[,2] <- forecasts_with_cov[[1]]$lower[,2] 
@@ -762,11 +759,11 @@ for (i in seq_along(selected_countries)) {
   fitted_values_without_cov <- fitted(arima_models[[i]])
   actual_values <- time_series_list[[i]]
 
-  # Forecasts
+  #forecasts
   forecast_values_with_cov <- forecasts_with_cov[[i]]$mean
   forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
   
-  # Data frame for plotting
+  #data frame for plotting
   df <- data.frame(
     Year = c(time(actual_values), time(forecast_values_with_cov)),
     Actual_Price = c(actual_values, rep(NA, length(forecast_values_with_cov))),
@@ -774,7 +771,7 @@ for (i in seq_along(selected_countries)) {
     Fitted_Price_without_Cov = c(fitted_values_without_cov, forecast_values_without_cov)
   )
   
-  # Plot
+  
   plot <- ggplot(df, aes(x = Year)) +
     geom_line(aes(y = Actual_Price), color = "blue") +
     geom_line(aes(y = Fitted_Price_with_Cov), color = "red") +
@@ -803,78 +800,64 @@ wgi <- read_excel("wgidataset.xlsx", sheet = "Political StabilityNoViolence", sk
 ```
 
 ```{r}
-# Countries selection 
+#countries selection 
 wgi <- wgi %>%
   filter(row_number() == 1 | `...2` %in% c("BRA", "CHE", "VEN", "TWN"))
 ```
 
 ```{r}
-# Identify columns where the first row matches your criteria
+
 cols_to_keep <- which(wgi[1, ] %in% c("Country/Territory", "Code", "Estimate"))
 
-# Convert the indices to column names
 cols_to_keep <- names(wgi)[cols_to_keep]
 
-# Now select these columns
 wgi <- wgi %>%
   select(all_of(cols_to_keep))
 ```
 
 ```{r}
-# rename columns
 wgi <- rename(wgi, country = ...1, code=...2)
 ```
 
 ```{r}
-# remove first row
 wgi <- wgi %>%
   slice(-1)
 ```
 
 ```{r}
-# Get the column names
 col_names <- names(wgi)
 
-# Remove the last 4 characters
 new_col_names <- substr(col_names, 1, nchar(col_names) - 4)
 
-# Update the column names
 names(wgi) <- new_col_names
 
 ```
 
 ```{r}
-# Get the column names
 col_names <- names(wgi)
 
-# Identify the columns that start with '2'
 start_with_2 <- grepl("^2", col_names)
 
-# For the column names that start with '2', remove the last character
 col_names[start_with_2] <- substr(col_names[start_with_2], 1, nchar(col_names[start_with_2]) - 1)
 
-# Update the column names
 names(wgi) <- col_names
 ```
 
 ```{r}
-# Define the columns to be renamed
 cols_to_rename <- c("2016.", "2017.", "2018.", "2019.", "2020.", "2021.")
 
-# Rename the columns
 names(wgi)[names(wgi) %in% cols_to_rename] <- sub(".$", "", cols_to_rename)
 ```
 
 ```{r}
-# visu wgi
 wgi <- wgi[,-2]
 
 long_data <- wgi %>% 
   pivot_longer(cols = -cou, names_to = "Year", values_to = "Political_Stability")
 long_data <- long_data %>% filter (Year>=2000)
 
-# Round the values in the Political_Stability column to 2 decimal places
-# Convert Political_Stability to numeric
+#Round the values in the Political_Stability column to 2 decimal places
+#Convert Political_Stability to numeric
 long_data$Political_Stability <- as.numeric(as.character(long_data$Political_Stability))
 
 # Round the values in the Political_Stability column to 2 decimal places
@@ -883,7 +866,7 @@ long_data$Political_Stability <- round(long_data$Political_Stability, 2)
 ```
 
 ```{r}
-# plot 
+ 
 ggplot(long_data, aes(x=Year, y=Political_Stability, color=cou, group=cou)) +
   geom_line() +
   labs(x='Year', y='Political Stability', color = "Country") +
@@ -895,24 +878,21 @@ ggplot(long_data, aes(x=Year, y=Political_Stability, color=cou, group=cou)) +
 Without any suprise, we see that Venezuela has really weak result of stability governance. 
 
 ```{r}
-# Filter the data for the selected countries
 
 long_data[long_data == 'Venezuela, RB'] <- "Venezuela"
 long_data[long_data == 'Taiwan, China'] <- "Taiwan"
 
 filtered_data <- long_data[long_data$cou %in% selected_countries, ]
 
-# Reshape the data to wide format using tidyr::pivot_wider
-library(tidyr)
 wide_data <- pivot_wider(filtered_data, names_from = cou, values_from = Political_Stability)
 
 # Remove any remaining unnecessary columns
 #wide_data <- wide_data[, -1]
 
-# Rename the columns
+#rename the col
 colnames(wide_data)[-1] <- selected_countries
 
-# Convert wide_data to a data frame
+#convert wide_data to a data frame
 cleaned_data <- as.data.frame(wide_data)
 ```
 
@@ -920,32 +900,32 @@ cleaned_data <- as.data.frame(wide_data)
 ```{r}
 # Join the time series data with the covariate data
 
-# First, ensure that Year column is numeric for merging
+#numeric
 cleaned_data$Year <- as.numeric(cleaned_data$Year)
 
 for (i in seq_along(selected_countries)) {
-  # Prepare time series data for merging
+  #merge
   time_series_df <- data.frame(
     Year = floor(time(time_series_list[[i]])), # Get the year part of the time series index
     Dollar_Price = as.numeric(time_series_list[[i]]) # Convert time series data to numeric
   )
 
-  # Prepare covariate data for merging
+  
   covariate_df <- data.frame(
     Year = cleaned_data$Year,
     Political_Stability = cleaned_data[[selected_countries[i]]]
   )
   
-  # Merge the time series data with the covariate data
+  #merge the time series data with the cov data
   merged_df <- merge(time_series_df, covariate_df, by = "Year", all.x = TRUE)
   
-  # Handle any missing values after the merge
+  #missing values
   merged_df$Political_Stability[is.na(merged_df$Political_Stability)] <- 0 # Or use any other imputation method
   
-  # Replace the time series with the merged dataframe
+  # replace the time series with merged dataframe
   time_series_list[[i]] <- ts(merged_df$Dollar_Price, start = c(min(merged_df$Year), 1), frequency = 1)
   
-  # Replace the political stability with the merged dataframe
+  # replace the political stability with merged dataframe
   cleaned_data[[selected_countries[i]]] <- merged_df$Political_Stability
 }
 
@@ -966,11 +946,10 @@ aic_comparison <- data.frame(
   AIC_With_Covariates = aic_with_cov
 )
 
-# Print the AIC comparison
 print(aic_comparison)
 ```
 ```{r}
-# Forecast for the next three years for models with covariates
+#forecast for the next three years for models with cov
 forecasts_with_cov <- mapply(function(model, covariate) {
   future_covariate_values <- matrix(rep(tail(covariate, n = 1), 3), nrow = 3)
   forecast(model, h = 3, xreg = future_covariate_values)
@@ -995,16 +974,16 @@ forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
 
 ```{r}
 for (i in seq_along(selected_countries)) {
-  # Fitted and actual values
+  # fitted and actual values
   fitted_values_with_cov <- fitted(arima_models_cov[[i]])
   fitted_values_without_cov <- fitted(arima_models[[i]])
   actual_values <- time_series_list[[i]]
 
-  # Forecasts
+  # forecasts
   forecast_values_with_cov <- forecasts_with_cov[[i]]$mean
   forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
   
-  # Data frame for plotting
+  # data frame for plotting
   df <- data.frame(
     Year = c(time(actual_values), time(forecast_values_with_cov)),
     Actual_Price = c(actual_values, rep(NA, length(forecast_values_with_cov))),
@@ -1012,7 +991,7 @@ for (i in seq_along(selected_countries)) {
     Fitted_Price_without_Cov = c(fitted_values_without_cov, forecast_values_without_cov)
   )
   
-  # Plot
+  
   plot <- ggplot(df, aes(x = Year)) +
     geom_line(aes(y = Actual_Price), color = "blue") +
     geom_line(aes(y = Fitted_Price_with_Cov), color = "red") +
