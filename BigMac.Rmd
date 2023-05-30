@@ -504,8 +504,19 @@ ggplot(data = filtered_inflation, aes(x = Year, y = Inflation_Rate, color = Coun
   ylab("Inflation") +
   theme(legend.position="bottom", legend.box = "horizontal") +
   scale_color_discrete(name = "Area")
-
 ```
+```{r}
+selected_countries_without_venezuela <- selected_countries[selected_countries != 'Venezuela']
+filtered_inflation <- inf_filtered %>% filter(Country %in% selected_countries_without_venezuela) 
+ggplot(data = filtered_inflation, aes(x = Year, y = Inflation_Rate, color = Country)) +
+  geom_line() +
+  ggtitle("Evolution of Inflation Growth over time by country") +
+  xlab("Year") +
+  ylab("Inflation") +
+  theme(legend.position="bottom", legend.box = "horizontal") +
+  scale_color_discrete(name = "Area")
+```
+
 On this plot, we see an overview of our dataset that represent the GDP through years for our selected list of countries. We observe Venezuela with a very high pic in 2018. 
 
 ```{r}
@@ -1037,6 +1048,36 @@ for (i in seq_along(selected_countries)) {
     theme_minimal() +
     theme(legend.position = "bottom")
   print(plot)
+}
+
+```
+```{r}
+arima_models_with_covariates <- list()
+
+for (country in names(country_dfs)) {
+  
+  # Get data frame
+  df <- country_dfs[[country]]
+  
+  # Make sure all columns are numeric
+  df <- data.frame(lapply(df, as.numeric))
+
+  # Check for NA values and handle them appropriately
+  if (any(is.na(df))) {
+    df[is.na(df)] <- 0  # fill with 0 or use other imputation method
+  }
+  
+  # Extract time series variable
+  ts <- ts(df$your_time_series_variable, start = c(min(df$Year), 1), frequency = 1)
+
+  # Create matrix of covariates, excluding the time series variable
+  covariates <- as.matrix(df[ , !(names(df) %in% "your_time_series_variable")])
+  
+  # Fit ARIMA model with covariates
+  model <- auto.arima(ts, xreg = covariates)
+  
+  # Save the model
+  arima_models_with_covariates[[country]] <- model
 }
 
 ```
