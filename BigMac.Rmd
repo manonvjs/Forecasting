@@ -957,11 +957,11 @@ forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
 
 
 # Subtract the year from the forecast values for the first country
-forecasts_with_cov[[1]]$mean <- forecasts_with_cov[[1]]$mean - 2402
-forecasts_with_cov[[1]]$lower[,1] <- forecasts_with_cov[[1]]$lower[,1] - 2402
-forecasts_with_cov[[1]]$lower[,2] <- forecasts_with_cov[[1]]$lower[,2] - 2402
-forecasts_with_cov[[1]]$upper[,1] <- forecasts_with_cov[[1]]$upper[,1] - 2402
-forecasts_with_cov[[1]]$upper[,2] <- forecasts_with_cov[[1]]$upper[,2] - 2402
+forecasts_with_cov[[1]]$mean <- forecasts_with_cov[[1]]$mean 
+forecasts_with_cov[[1]]$lower[,1] <- forecasts_with_cov[[1]]$lower[,1] 
+forecasts_with_cov[[1]]$lower[,2] <- forecasts_with_cov[[1]]$lower[,2] 
+forecasts_with_cov[[1]]$upper[,1] <- forecasts_with_cov[[1]]$upper[,1] 
+forecasts_with_cov[[1]]$upper[,2] <- forecasts_with_cov[[1]]$upper[,2] 
 
 forecasts_without_cov <- lapply(arima_models, forecast, h = 3)
 forecast_values_without_cov <- forecasts_without_cov[[i]]$mean
