@@ -232,6 +232,7 @@ print(corr_by_country)
 # Filter data for the specified countries
 selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
 
+
 bigmac_filtered <- bigmac %>%
   filter(country %in% selected_countries)
 bigmac_grouped2 <- bigmac_filtered %>%
@@ -356,7 +357,7 @@ time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
 ```
 
 ```{r}
-selected_countries <- c("Taiwan", "Venezuela", "Brazil", "Switzerland")
+selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
 #Fix dégueulasse pour montrer les bonnes times series et les bons pays
 ```
 
@@ -446,23 +447,29 @@ calc_AIC <- function(model) {
 # Calculate and display AIC and BIC for each model
 arima_aic <- lapply(arima_models, calc_AIC)
 ets_aic <- lapply(ets_models, calc_AIC)
+holts_aic <- lapply(holt_models, calc_AIC)
+ses_aic <- lapply(ses_models, calc_AIC)
 
 # Store results in a data frame for comparison
 results <- data.frame(
   Country = selected_countries,
   ARIMA_AIC = sapply(arima_aic, `[[`, "AIC"),
-  ETS_AIC = sapply(ets_aic, `[[`, "AIC")
+  ETS_AIC = sapply(ets_aic, `[[`, "AIC"),
+  HOLTS_AIC = sapply(holts_aic, `[[`, "AIC"),
+  SES_AIC = sapply(ses_aic, `[[`, "AIC")
 )
 
 # Find the model with minimum AIC and BIC for each country
-results$Min_AIC_Model <- apply(results[,c("ARIMA_AIC", "ETS_AIC")], 1, which.min)
+results$Min_AIC_Model <- apply(results[,c("ARIMA_AIC", "ETS_AIC", "HOTLS_AIC", "SES_AIC")], 1, which.min)
 
 # Print results
 print(results)
 
 # Find the model with overall minimum AIC and BIC
 best_AIC_model <- which.min(c(ARIMA_AIC = mean(sapply(arima_aic, `[[`, "AIC")),
-                              ETS_AIC = mean(sapply(ets_aic, `[[`, "AIC"))))
+                              ETS_AIC = mean(sapply(ets_aic, `[[`, "AIC")),
+                              HOLTS_AIC = mean(sapply(holts_aic, `[[`, "AIC")),
+                              SES_AIC = mean(sapply(ses_aic, `[[`, "AIC"))))
 
 # Print the model with the lowest AIC
 print(paste("Model with minimum AIC: ", names(best_AIC_model), ", AIC: ", best_AIC_model))
@@ -471,7 +478,10 @@ print(paste("Model with minimum AIC: ", names(best_AIC_model), ", AIC: ", best_A
 # Choose the best models based on AIC and BIC
 best_models_AIC <- switch(names(best_AIC_model),
                       ARIMA_AIC = arima_models,
-                      ETS_AIC = ets_models)
+                      ETS_AIC = ets_models,
+                      HOLTS_AIC = holt_models,
+                      SES_AIC = ses_models)
+
 
 
 # Forecast using best models
