@@ -232,7 +232,6 @@ print(corr_by_country)
 # Filter data for the specified countries
 selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
 
-
 bigmac_filtered <- bigmac %>%
   filter(country %in% selected_countries)
 bigmac_grouped2 <- bigmac_filtered %>%
@@ -357,7 +356,7 @@ time_series_list <- lapply(time_series_list, function(x) na.approx(x, rule = 2))
 ```
 
 ```{r}
-selected_countries <- c("Venezuela", "Brazil", "Switzerland", "Taiwan")
+selected_countries <- c("Taiwan", "Venezuela", "Brazil", "Switzerland")
 #Fix dégueulasse pour montrer les bonnes times series et les bons pays
 ```
 
@@ -447,29 +446,23 @@ calc_AIC <- function(model) {
 # Calculate and display AIC and BIC for each model
 arima_aic <- lapply(arima_models, calc_AIC)
 ets_aic <- lapply(ets_models, calc_AIC)
-holts_aic <- lapply(holt_models, calc_AIC)
-ses_aic <- lapply(ses_models, calc_AIC)
 
 # Store results in a data frame for comparison
 results <- data.frame(
   Country = selected_countries,
   ARIMA_AIC = sapply(arima_aic, `[[`, "AIC"),
-  ETS_AIC = sapply(ets_aic, `[[`, "AIC"),
-  HOLTS_AIC = sapply(holts_aic, `[[`, "AIC"),
-  SES_AIC = sapply(ses_aic, `[[`, "AIC")
+  ETS_AIC = sapply(ets_aic, `[[`, "AIC")
 )
 
 # Find the model with minimum AIC and BIC for each country
-results$Min_AIC_Model <- apply(results[,c("ARIMA_AIC", "ETS_AIC", "HOTLS_AIC", "SES_AIC")], 1, which.min)
+results$Min_AIC_Model <- apply(results[,c("ARIMA_AIC", "ETS_AIC")], 1, which.min)
 
 # Print results
 print(results)
 
 # Find the model with overall minimum AIC and BIC
 best_AIC_model <- which.min(c(ARIMA_AIC = mean(sapply(arima_aic, `[[`, "AIC")),
-                              ETS_AIC = mean(sapply(ets_aic, `[[`, "AIC")),
-                              HOLTS_AIC = mean(sapply(holts_aic, `[[`, "AIC")),
-                              SES_AIC = mean(sapply(ses_aic, `[[`, "AIC"))))
+                              ETS_AIC = mean(sapply(ets_aic, `[[`, "AIC"))))
 
 # Print the model with the lowest AIC
 print(paste("Model with minimum AIC: ", names(best_AIC_model), ", AIC: ", best_AIC_model))
@@ -478,10 +471,7 @@ print(paste("Model with minimum AIC: ", names(best_AIC_model), ", AIC: ", best_A
 # Choose the best models based on AIC and BIC
 best_models_AIC <- switch(names(best_AIC_model),
                       ARIMA_AIC = arima_models,
-                      ETS_AIC = ets_models,
-                      HOLTS_AIC = holt_models,
-                      SES_AIC = ses_models)
-
+                      ETS_AIC = ets_models)
 
 
 # Forecast using best models
@@ -504,19 +494,8 @@ ggplot(data = filtered_inflation, aes(x = Year, y = Inflation_Rate, color = Coun
   ylab("Inflation") +
   theme(legend.position="bottom", legend.box = "horizontal") +
   scale_color_discrete(name = "Area")
-```
-```{r}
-selected_countries_without_venezuela <- selected_countries[selected_countries != 'Venezuela']
-filtered_inflation <- inf_filtered %>% filter(Country %in% selected_countries_without_venezuela) 
-ggplot(data = filtered_inflation, aes(x = Year, y = Inflation_Rate, color = Country)) +
-  geom_line() +
-  ggtitle("Evolution of Inflation Growth over time by country") +
-  xlab("Year") +
-  ylab("Inflation") +
-  theme(legend.position="bottom", legend.box = "horizontal") +
-  scale_color_discrete(name = "Area")
-```
 
+```
 On this plot, we see an overview of our dataset that represent the GDP through years for our selected list of countries. We observe Venezuela with a very high pic in 2018. 
 
 ```{r}
@@ -892,6 +871,7 @@ wgi <- wgi[,-2]
 
 long_data <- wgi %>% 
   pivot_longer(cols = -cou, names_to = "Year", values_to = "Political_Stability")
+long_data <- long_data %>% filter (Year>=2000)
 
 # Round the values in the Political_Stability column to 2 decimal places
 # Convert Political_Stability to numeric
@@ -1048,36 +1028,6 @@ for (i in seq_along(selected_countries)) {
     theme_minimal() +
     theme(legend.position = "bottom")
   print(plot)
-}
-
-```
-```{r}
-arima_models_with_covariates <- list()
-
-for (country in names(country_dfs)) {
-  
-  # Get data frame
-  df <- country_dfs[[country]]
-  
-  # Make sure all columns are numeric
-  df <- data.frame(lapply(df, as.numeric))
-
-  # Check for NA values and handle them appropriately
-  if (any(is.na(df))) {
-    df[is.na(df)] <- 0  # fill with 0 or use other imputation method
-  }
-  
-  # Extract time series variable
-  ts <- ts(df$your_time_series_variable, start = c(min(df$Year), 1), frequency = 1)
-
-  # Create matrix of covariates, excluding the time series variable
-  covariates <- as.matrix(df[ , !(names(df) %in% "your_time_series_variable")])
-  
-  # Fit ARIMA model with covariates
-  model <- auto.arima(ts, xreg = covariates)
-  
-  # Save the model
-  arima_models_with_covariates[[country]] <- model
 }
 
 ```
